@@ -1,0 +1,8 @@
+stages:
+  - test
+
+run tests:
+  stage: test
+  image: pavelyanu/yanushonak:latest
+  script:
+    - python tests/test.py
