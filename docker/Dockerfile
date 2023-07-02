@@ -6,7 +6,7 @@ RUN apt-get update && \
     python3-dev python3-pip python3-numpy git flex bison libbz2-dev
 
 # Install nle using pip
-RUN pip install nle
+RUN pip install nle torchrl
 
 # Set the working directory
 WORKDIR /app
