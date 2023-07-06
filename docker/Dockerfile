@@ -12,3 +12,5 @@ RUN pip install nle torchrl
 WORKDIR /data
 
 RUN git clone https://github.com/dungeonsdatasubmission/nld-aa-taster.git
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip
