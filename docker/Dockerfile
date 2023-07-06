@@ -9,4 +9,6 @@ RUN apt-get update && \
 RUN pip install nle torchrl
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /data
+
+RUN git clone https://github.com/dungeonsdatasubmission/nld-aa-taster.git
