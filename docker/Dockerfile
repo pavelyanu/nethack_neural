@@ -14,3 +14,4 @@ WORKDIR /data
 RUN git clone https://github.com/dungeonsdatasubmission/nld-aa-taster.git
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip
+RUN pip install minihack
