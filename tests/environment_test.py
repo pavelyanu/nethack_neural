@@ -24,3 +24,10 @@ class TestNLE(unittest.TestCase):
             import_module('nle')
         except:
             self.fail("nle import failed")
+
+class TestMinihack(unittest.TestCase):
+    def test_minihack_import(self):
+        try:
+            import_module('minihack')
+        except:
+            self.fail("minihack import failed")
