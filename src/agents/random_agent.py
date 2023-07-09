@@ -1,5 +1,5 @@
 import numpy as np
-from src.abstract_agent import AbstractAgent
+from src.agents.abstract_agent import AbstractAgent
 
 class RandomAgent(AbstractAgent):
     def __init__(self, observation_space, action_space):
