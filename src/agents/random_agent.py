@@ -8,7 +8,7 @@ class RandomAgent(AbstractAgent):
     def act(self, state):
         return np.random.randint(0, self.action_space.n)
 
-    def learn(self, state, action, reward, next_state, done):
+    def learning_step(self, state, action, reward, next_state, done):
         pass
 
     def save(self, path):

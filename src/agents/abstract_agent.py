@@ -19,7 +19,7 @@ class AbstractAgent(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def learn(self, state, action, reward, next_state, done):
+    def learning_step(self, state, action, reward, next_state, done):
         pass
 
     @abc.abstractmethod
