@@ -1,5 +1,5 @@
 import numpy as np
-from src.abstract_agent import AbstractAgent
+from src.agents.abstract_agent import AbstractAgent
 
 class RandomAgent(AbstractAgent):
     def __init__(self, observation_space, action_space):
@@ -8,7 +8,7 @@ class RandomAgent(AbstractAgent):
     def act(self, state):
         return np.random.randint(0, self.action_space.n)
 
-    def learn(self, state, action, reward, next_state, done):
+    def learning_step(self, state, action, reward, next_state, done):
         pass
 
     def save(self, path):
