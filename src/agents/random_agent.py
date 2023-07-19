@@ -6,7 +6,7 @@ class RandomAgent(AbstractAgent):
         super().__init__(observation_space, action_space)
 
     def act(self, state):
-        return np.random.randint(0, self.action_space.n)
+        return np.random.randint(0, self.action_space)
 
     def learning_step(self, state, action, reward, next_state, done):
         pass

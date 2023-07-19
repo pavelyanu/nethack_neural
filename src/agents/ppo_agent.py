@@ -8,12 +8,15 @@ from torch.distributions import Categorical
 class Network(nn.Module):
     def __init__(self, observation_space, action_space, hidden_size=64):
         super(Network, self).__init__()
-        
+        # flatten observation space 
+        observation_space = np.prod(observation_space)
         self.fc1 = nn.Linear(observation_space, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, action_space)
         
     def forward(self, x):
+        # flatten observation space
+        x = x.view(x.size(0), -1)
         x = torch.tanh(self.fc1(x))
         x = torch.tanh(self.fc2(x))
         action_probs = torch.softmax(self.fc3(x), dim=-1)
@@ -45,6 +48,13 @@ class PPOAgent(AbstractAgent):
         return action.item()
         
     def learning_step(self, state, action, reward, next_state, done):
+        # convert to tensor
+        state = torch.from_numpy(state).float().unsqueeze(0)
+        action = torch.tensor([action]).unsqueeze(0)
+        reward = torch.tensor([reward]).unsqueeze(0)
+        next_state = torch.from_numpy(next_state).float().unsqueeze(0)
+        done = torch.tensor([done]).unsqueeze(0)
+
         self.states.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
@@ -56,8 +66,9 @@ class PPOAgent(AbstractAgent):
             
     def update_policy(self):
         returns = self.compute_returns(self.rewards, self.gamma)
-        states = torch.stack(self.states)
-        actions = torch.stack(self.actions)
+        returns = returns.view(-1, 1)
+        states = torch.cat(self.states)
+        actions = torch.cat(self.actions)
         old_action_probs = self.policy(states).gather(1, actions.view(-1, 1)).detach()
         
         for _ in range(self.k_epochs):

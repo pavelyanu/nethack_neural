@@ -12,13 +12,15 @@ class Runner:
     def train(self, render=False):
         for episode in range(self.num_episodes):
             state = self.env.reset()
+            # state = state['glyphs']
             done = False
             while not done:
                 if render:
                     self.env.render()
                 action = self.agent.act(state)
                 next_state, reward, done, _ = self.env.step(action)
-                self.agent.learn(state, action, reward, next_state, done)
+                # next_state = next_state['glyphs']
+                self.agent.learning_step(state, action, reward, next_state, done)
                 state = next_state
         self.agent.save('models/random_agent.pkl')
 
@@ -27,12 +29,14 @@ class Runner:
         total_reward = 0
         for episode in range(self.num_episodes):
             state = self.env.reset()
+            # state = state['glyphs']
             done = False
             while not done:
                 if render:
                     self.env.render()
                 action = self.agent.act(state)
                 next_state, reward, done, _ = self.env.step(action)
+                # next_state = next_state['glyphs']
                 total_reward += reward
                 state = next_state
         self.log("Reward: {}".format(total_reward / self.num_episodes))

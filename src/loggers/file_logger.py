@@ -5,6 +5,7 @@ class FileLogger(AbstractLogger):
         super().__init__(name)
         self.path = path
 
+
     def log(self, msg):
         with open(self.path, 'a') as f:
             f.write(msg + '\n')

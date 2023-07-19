@@ -1,6 +1,5 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.loggers.file_logger import FileLogger
 from src.loggers.stdout_logger import StdoutLogger
