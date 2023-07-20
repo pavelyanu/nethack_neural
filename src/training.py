@@ -9,9 +9,10 @@ import numpy as np
 
 from agents.ppo_agent import PPOAgent
 from agents.random_agent import RandomAgent
-from runner import Runner
 from loggers.file_logger import FileLogger
-from utils.wrapper import MinihackWrapper
+from utils.wrapper import MinihackWrapper, MinihackTensorDictWrapper
+from runners.ppo_runner import PPORunner
+from runners.default_runner import Runner
 
 parser = argparse.ArgumentParser(description='Train a PPO agent on MiniHack')
 parser.add_argument('--num-episodes', type=int, default=1000, metavar='N',)
@@ -21,22 +22,23 @@ parser.add_argument('--model', type=str, default=None)
 
 
 def main(args):
-    env = MinihackWrapper(gym.make("MiniHack-CorridorBattle-v0"))
-    agent = PPOAgent(env.observation_space.spaces["glyphs"].shape, env.action_space.n)
-    runner = Runner(
-        env=env,
-        agent=agent,
-        num_episodes=args.num_episodes,
-        loggers=[FileLogger(args.log)],
+    env = MinihackWrapper(gym.make("MiniHack-River-MonsterLava-v0", observation_keys=( 'glyphs', 'blstats' )))
+    # env = MinihackWrapper(gym.make("MiniHack-CorridorBattle-v0", observation_keys=( 'glyphs', 'blstats' )))
+    observation_space = env.observation_space
+    action_space = env.action_space
+    agent = PPOAgent(
+        observation_space=observation_space,
+        action_space=action_space,
     )
-    runner.train(render=args.render)
-    runner.evaluate(render=args.render)
-    runner = Runner(
-        env=env,
-        agent=RandomAgent(env.observation_space.spaces["glyphs"].shape, env.action_space.n),
-        num_episodes=args.num_episodes,
-        loggers=[FileLogger(args.log)],
+    loggers = [FileLogger(args.log)]
+    runner = PPORunner(env, agent, loggers)
+    runner.run(num_episodes=args.num_episodes, render=args.render)
+    loggers[0].log("Training complete.")
+    random_agent = RandomAgent(
+        observation_space=observation_space,
+        action_space=action_space,
     )
+    runner = Runner(env, random_agent, loggers)
     runner.evaluate(render=args.render)
 
 

@@ -17,7 +17,7 @@ class MinihackWrapper(gym.Wrapper):
         return observation
 
     def _process_observation(self, observation):
-        return observation['glyphs']
+        return observation
 
 class MinihackTensorDictWrapper(gym.Wrapper):
     def __init__(self, env):

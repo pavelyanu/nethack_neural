@@ -5,7 +5,7 @@ import unittest
 import nle
 import gym
 from src.agents.random_agent import RandomAgent
-from src.runner import Runner
+from src.runners.default_runner import Runner
 from src.loggers.file_logger import FileLogger
 
 class RandomAgentTest(unittest.TestCase):

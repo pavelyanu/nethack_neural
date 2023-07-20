@@ -15,11 +15,15 @@ class AbstractAgent(abc.ABC):
         return self._action_space
 
     @abc.abstractmethod
-    def act(self, state):
+    def act(self, state, train=True):
         pass
 
     @abc.abstractmethod
-    def learning_step(self, state, action, reward, next_state, done):
+    def save_transition(self, *args):
+        pass
+
+    @abc.abstractmethod
+    def train():
         pass
 
     @abc.abstractmethod
