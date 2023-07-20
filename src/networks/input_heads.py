@@ -42,9 +42,9 @@ class GlyphHeadConv(nn.Module):
 class BlstatsHead(nn.Module):
     def __init__(self, input_shape, output_shape, hidden_size=64):
         super().__init__()
-        self.input_shape = input_shape
+        self.input_shape = input_shape[0]
         self.hidden_size = hidden_size
-        self.fc1 = nn.Linear(input_shape, hidden_size)
+        self.fc1 = nn.Linear(self.input_shape, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, output_shape)
 

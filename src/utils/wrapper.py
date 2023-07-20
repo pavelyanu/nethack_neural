@@ -36,6 +36,6 @@ class MinihackTensorDictWrapper(gym.Wrapper):
     def _process_observation(self, observation):
         dictionary = {}
         for key in observation.keys():
-            dictionary[key] = torch.tensor(observation[key]).unsqueeze(0)
-        ret = TensorDict(dictionary, batch_size=[1])
+            dictionary[key] = torch.tensor(observation[key]).unsqueeze(0).to(torch.float32)
+        ret = TensorDict(dictionary, batch_size=1)
         return ret
