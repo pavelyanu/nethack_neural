@@ -99,23 +99,6 @@ class AbstractPPOAgent(AbstractAgent):
         self.eps_clip = eps_clip
         self.batch_size = batch_size
         self.buffer_size = buffer_size
-        self.buffer = Buffer()
-        self.actor = GlyphBlstatHead(
-            observation_space.spaces['glyphs'].shape,
-            observation_space.spaces['blstats'].shape,
-            action_space.n,
-            hidden_layer)
-        self.actor_old = GlyphBlstatHead(
-            observation_space.spaces['glyphs'].shape,
-            observation_space.spaces['blstats'].shape,
-            action_space.n,
-            hidden_layer)
-        self.critic = GlyphBlstatHead(
-            observation_space.spaces['glyphs'].shape,
-            observation_space.spaces['blstats'].shape,
-            1,
-            hidden_layer, actor=False)
-        self.actor_old.load_state_dict(self.actor.state_dict())
 
     def act(self, state, train=True):
         with torch.no_grad():
@@ -147,7 +130,11 @@ class AbstractPPOAgent(AbstractAgent):
             returns.insert(0, discounted_reward)
         returns = torch.tensor(returns)
 
-        returns = (returns - returns.mean()) / (returns.std() + 1e-5)
+        std = returns.std()
+        if torch.isnan(std):
+            std = 1e-5
+
+        returns = (returns - returns.mean()) / (std + 1e-5)
         returns = returns.unsqueeze(1)
 
         advantages = returns - state_values
@@ -168,7 +155,7 @@ class AbstractPPOAgent(AbstractAgent):
             actor_loss = -torch.min(surrogate1, surrogate2).mean()
 
             critic_loss = nn.MSELoss()(state_values, returns)
-
+            
             actor_optimizer.zero_grad()
             actor_loss.backward()
             actor_optimizer.step()
@@ -191,3 +178,65 @@ class AbstractPPOAgent(AbstractAgent):
         paths = [path + 'actor.pkl', path + 'critic.pkl']
         for model, path in zip([self.actor, self.critic], paths):
             torch.save(model.state_dict(), path)
+
+
+class GlyphPPOAgent(AbstractPPOAgent):
+    def __init__(
+        self,
+        observation_space,
+        action_space,
+        actor_lr=0.0001,
+        critic_lr=0.001,
+        gamma=0.99,
+        k_epochs=10,
+        eps_clip=0.2,
+        batch_size=32,
+        buffer_size=10000,
+        hidden_layer=64):
+        super().__init__(observation_space, action_space, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
+        self.actor = GlyphHeadFlat(
+            observation_space.spaces['glyphs'].shape,
+            action_space.n,
+            hidden_layer)
+        self.actor_old = GlyphHeadFlat(
+            observation_space.spaces['glyphs'].shape,
+            action_space.n,
+            hidden_layer)
+        self.critic = GlyphHeadFlat(
+            observation_space.spaces['glyphs'].shape,
+            1,
+            hidden_layer, actor=False)
+        self.actor_old.load_state_dict(self.actor.state_dict())
+        self.buffer = Buffer(keys=['glyphs'])
+
+class GlyphBlstatsPPOAgent(AbstractPPOAgent):
+    def __init__(
+        self,
+        observation_space,
+        action_space,
+        actor_lr=0.0001,
+        critic_lr=0.001,
+        gamma=0.99,
+        k_epochs=10,
+        eps_clip=0.2,
+        batch_size=32,
+        buffer_size=10000,
+        hidden_layer=64):
+        super().__init__(observation_space, action_space, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
+        self.actor = GlyphBlstatHead(
+            observation_space.spaces['glyphs'].shape,
+            observation_space.spaces['blstats'].shape,
+            action_space.n,
+            hidden_layer)
+        self.actor_old = GlyphBlstatHead(
+            observation_space.spaces['glyphs'].shape,
+            observation_space.spaces['blstats'].shape,
+            action_space.n,
+            hidden_layer)
+        self.critic = GlyphBlstatHead(
+            observation_space.spaces['glyphs'].shape,
+            observation_space.spaces['blstats'].shape,
+            1,
+            hidden_layer, actor=False)
+        self.actor_old.load_state_dict(self.actor.state_dict())
+        self.buffer = Buffer(keys=['glyphs', 'blstats'])

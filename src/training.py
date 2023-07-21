@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from agents.ppo_agent import AbstractPPOAgent
+from agents.ppo_agent import GlyphBlstatsPPOAgent
 from agents.random_agent import RandomAgent
 from loggers.file_logger import FileLogger
 from utils.wrapper import MinihackWrapper, MinihackTensorDictWrapper
@@ -26,7 +26,7 @@ def main(args):
     # env = MinihackWrapper(gym.make("MiniHack-CorridorBattle-v0", observation_keys=( 'glyphs', 'blstats' )))
     observation_space = env.observation_space
     action_space = env.action_space
-    agent = AbstractPPOAgent(
+    agent = GlyphBlstatsPPOAgent(
         observation_space=observation_space,
         action_space=action_space,
     )
