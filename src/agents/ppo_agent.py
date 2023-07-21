@@ -86,7 +86,7 @@ class AbstractPPOAgent(AbstractAgent):
                 actor_lr=0.0001,
                 critic_lr=0.001,
                 gamma=0.99,
-                k_epochs=10,
+                k_epochs=5,
                 eps_clip=0.2,
                 batch_size=32,
                 buffer_size=10000,
