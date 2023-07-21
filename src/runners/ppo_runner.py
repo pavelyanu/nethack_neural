@@ -1,5 +1,5 @@
 from src.runners.abstract_runner import AbstractRunner
-from src.agents.ppo_agent import PPOAgent
+from src.agents.ppo_agent import AbstractPPOAgent
 
 class PPORunner(AbstractRunner):
     def __init__(self, env, agent, loggers):

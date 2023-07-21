@@ -7,52 +7,56 @@ from src.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, BlstatsHead
 from src.agents.abstract_agent import AbstractAgent
 
 class Buffer:
-    def __init__(self):
+    def __init__(self, keys=['glyphs', 'blstats']) -> None:
+        self.keys = keys
         self.actions = []
-        self.glyphs = []
-        self.blstats = []
         self.logprobs = []
         self.rewards = []
         self.state_values = []
         self.done = []
         self.prepared = False
+        for key in self.keys:
+            setattr(self, key, [])
         
     def add(self, state, action, logprob, reward, state_value, done):
         self.actions.append(action)
-        self.glyphs.append(state['glyphs'])
-        self.blstats.append(state['blstats'])
         self.logprobs.append(logprob)
         self.rewards.append(reward)
         self.state_values.append(state_value)
         self.done.append(done)
+        for key in self.keys:
+            getattr(self, key).append(state[key])
     
     def prepare(self):
         length = len(self.actions)
         self.action_tensors = torch.tensor(self.actions).view(length, 1)
-        self.glyph_tensors = torch.cat(self.glyphs, dim=0)
-        self.blstat_tensors = torch.cat(self.blstats, dim=0)
         self.logprob_tensors = torch.cat(self.logprobs, dim=0).view(length, 1)
         self.reward_tensors = torch.tensor(self.rewards).view(length, 1)
         self.state_value_tensors = torch.cat(self.state_values, dim=0)
         self.done_tensors= torch.tensor(self.done).view(length, 1)
         self.prepared = True
+        state_tensors = {}
+        for key in self.keys:
+            key_tensors = torch.cat(getattr(self, key), dim=0)
+            state_tensors[key] = key_tensors
+        self.state_tensors = state_tensors
+
 
     def clear(self):
         self.actions.clear()
-        self.glyphs.clear()
-        self.blstats.clear()
         self.logprobs.clear()
         self.rewards.clear()
         self.state_values.clear()
         self.done.clear()
+        for key in self.keys:
+            getattr(self, key).clear()
         if self.prepared:
             del self.action_tensors
-            del self.glyph_tensors
-            del self.blstat_tensors
             del self.logprob_tensors
             del self.reward_tensors
             del self.state_value_tensors
             del self.done_tensors
+            del self.state_tensors
             self.prepared = False
 
 
@@ -74,7 +78,7 @@ class GlyphBlstatHead(nn.Module):
         x = self.activation(x)
         return x
 
-class PPOAgent(AbstractAgent):
+class AbstractPPOAgent(AbstractAgent):
     def __init__(
                 self,
                 observation_space,
@@ -114,31 +118,20 @@ class PPOAgent(AbstractAgent):
         self.actor_old.load_state_dict(self.actor.state_dict())
 
     def act(self, state, train=True):
-        state = {key: torch.from_numpy(state[key]).float().unsqueeze(0) for key in state.keys()}
         with torch.no_grad():
             action_probs = self.actor(state)
         distribution = Categorical(action_probs)
-        # if train:
-        #     action = distribution.sample()
-        # else:
-        #     action = torch.argmax(action_probs)
         action = distribution.sample()
         return action.item(), distribution.log_prob(action)
     
     def save_transition(self, state, action, logprob, reward, next_state, done): 
-        glyphs = torch.from_numpy(state['glyphs']).float().unsqueeze(0)
-        blstats = torch.from_numpy(state['blstats']).float().unsqueeze(0)
         with torch.no_grad():
-            state_value = self.critic({'glyphs': glyphs, 'blstats': blstats})
-        self.buffer.add({'glyphs': glyphs, 'blstats': blstats}, action, logprob, reward, state_value, done)
-
-
+            state_value = self.critic(state)
+        self.buffer.add(state, action, logprob, reward, state_value, done)
 
     def train(self):
         self.buffer.prepare()
-        old_glyphs = self.buffer.glyph_tensors
-        old_blstats = self.buffer.blstat_tensors
-        old_states = {'glyphs': old_glyphs, 'blstats': old_blstats}
+        old_states =self.buffer.state_tensors
         old_actions = self.buffer.action_tensors
         old_logprobs = self.buffer.logprob_tensors
         state_values = self.buffer.state_value_tensors

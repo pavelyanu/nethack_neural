@@ -17,6 +17,8 @@ class MinihackWrapper(gym.Wrapper):
         return observation
 
     def _process_observation(self, observation):
+        for key in observation.keys():
+            observation[key] = torch.tensor(observation[key]).unsqueeze(0).to(torch.float32)
         return observation
 
 class MinihackTensorDictWrapper(gym.Wrapper):
