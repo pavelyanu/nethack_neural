@@ -9,29 +9,30 @@ class RolloutBuffer(AbstractBuffer):
         buffer_size,
         observation_shape,
         action_shape,
-        n_agents=1,
+        num_envs=1,
         device='cpu',
         dtype=torch.float32
     ):
-        super().__init__(buffer_size, n_agents)
+        super().__init__(buffer_size, num_envs)
         self.device = device
         self.observation_shape = observation_shape
         self.action_shape = action_shape
         self.dtype = dtype
         if isinstance(observation_shape, dict):
             self.keys = list(observation_shape.keys())
-            self.states = {key: torch.zeros((buffer_size, n_agents, *observation_shape[key]), dtype=self.dtype, device=self.device) for key in self.keys}
+            self.states = {key: torch.zeros((buffer_size, num_envs, *observation_shape[key]), dtype=self.dtype, device=self.device) for key in self.keys}
             self.add_state = self.add_state_dict
         else:
-            self.states = torch.zeros((buffer_size, n_agents, *observation_shape), dtype=self.dtype, device=self.device)
+            self.states = torch.zeros((buffer_size, num_envs, *observation_shape), dtype=self.dtype, device=self.device)
             self.add_state = self.add_state_tensor
-        self.actions = torch.zeros((buffer_size, n_agents, *action_shape), dtype=self.dtype, device=self.device)
-        self.rewards = torch.zeros((buffer_size, n_agents, 1), dtype=self.dtype, device=self.device)
-        self.logprobs = torch.zeros((buffer_size, n_agents, 1), dtype=self.dtype, device=self.device)
-        self.state_values = torch.zeros((buffer_size, n_agents, 1), dtype=self.dtype, device=self.device)
-        self.done = torch.zeros((buffer_size, n_agents, 1), dtype=torch.bool, device=self.device)
-        self.returns = torch.zeros((buffer_size, n_agents, 1), dtype=self.dtype, device=self.device)
-        self.advantages = torch.zeros((buffer_size, n_agents, 1), dtype=self.dtype, device=self.device)
+        self.actions = torch.zeros((buffer_size, num_envs, *action_shape), dtype=self.dtype, device=self.device)
+        self.rewards = torch.zeros((buffer_size, num_envs, 1), dtype=self.dtype, device=self.device)
+        self.logprobs = torch.zeros((buffer_size, num_envs, 1), dtype=self.dtype, device=self.device)
+        self.state_values = torch.zeros((buffer_size, num_envs, 1), dtype=self.dtype, device=self.device)
+        self.done = torch.zeros((buffer_size, num_envs, 1), dtype=torch.bool, device=self.device)
+        self.returns = torch.zeros((buffer_size, num_envs, 1), dtype=self.dtype, device=self.device)
+        self.advantages = torch.zeros((buffer_size, num_envs, 1), dtype=self.dtype, device=self.device)
+        self.pointer = 0
         
     def add(self, state, action, reward, logprob, state_value, done):
         self.add_state(state)
@@ -61,3 +62,14 @@ class RolloutBuffer(AbstractBuffer):
     def add_state_dict(self, state):
         for key in self.keys:
             self.states[key][self.pointer] = torch.tensor(state[key], device=self.device)
+
+    def clear(self):
+        self.pointer = 0
+        self.states = torch.zeros((self.buffer_size, self.num_envs, *self.observation_shape), dtype=self.dtype, device=self.device)
+        self.actions = torch.zeros((self.buffer_size, self.num_envs, *self.action_shape), dtype=self.dtype, device=self.device)
+        self.rewards = torch.zeros((self.buffer_size, self.num_envs, 1), dtype=self.dtype, device=self.device)
+        self.logprobs = torch.zeros((self.buffer_size, self.num_envs, 1), dtype=self.dtype, device=self.device)
+        self.state_values = torch.zeros((self.buffer_size, self.num_envs, 1), dtype=self.dtype, device=self.device)
+        self.done = torch.zeros((self.buffer_size, self.num_envs, 1), dtype=torch.bool, device=self.device)
+        self.returns = torch.zeros((self.buffer_size, self.num_envs, 1), dtype=self.dtype, device=self.device)
+        self.advantages = torch.zeros((self.buffer_size, self.num_envs, 1), dtype=self.dtype, device=self.device)

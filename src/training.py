@@ -13,9 +13,9 @@ from stable_baselines3.common.env_util import make_vec_env
 from agents.ppo_agent import GlyphBlstatsPPOAgent
 from agents.random_agent import RandomAgent
 from loggers.file_logger import FileLogger
-from utils.wrapper import MinihackWrapper, MinihackTensorDictWrapper
 from runners.ppo_runner import PPORunner
 from runners.default_runner import Runner
+from utils.env_specs import EnvSpecs
 
 parser = argparse.ArgumentParser(description='Train a PPO agent on MiniHack')
 parser.add_argument('--num-episodes', type=int, default=1000, metavar='N',)
@@ -35,34 +35,38 @@ def main(args):
         train(args)
 
 def train(args):
-    env = MinihackWrapper(gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=( 'glyphs', 'blstats' )))
-    # env = MinihackWrapper(gym.make("MiniHack-River-MonsterLava-v0", observation_keys=( 'glyphs', 'blstats' )))
-    # env = MinihackWrapper(gym.make("MiniHack-CorridorBattle-v0", observation_keys=( 'glyphs', 'blstats' )))
-    observation_space = env.observation_space
-    action_space = env.action_space
+    env = gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=( 'glyphs', 'blstats' ))
+    env_specs = EnvSpecs()
+    env_specs.init_with_gym_env(env)
     agent = GlyphBlstatsPPOAgent(
-        observation_space=observation_space,
-        action_space=action_space,
+        env_specs
     )
     loggers = [FileLogger(args.log)]
     runner = PPORunner(env, agent, loggers)
     runner.run(num_episodes=args.num_episodes, render=args.render)
     loggers[0].log("Training complete.")
     random_agent = RandomAgent(
-        observation_space=observation_space,
-        action_space=action_space,
+        env_specs
     )
     runner = Runner(env, random_agent, loggers)
     runner.evaluate(render=args.render)
 
 def train_vectorized(args):
-    env = gym.vector.make("MiniHack-Room-Monster-15x15-v0", num_envs=args.num_envs, wrappers=[MinihackWrapper], observation_keys=( 'glyphs', 'blstats' ))
-    observation_space = env.observation_space
-    action_space = env.action_space
+    env = gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=( 'glyphs', 'blstats' ))
+    env_specs = EnvSpecs()
+    env_specs.init_with_gym_env(env, num_envs=args.num_envs)
+    venv = gym.vector.make(
+        env.spec.id,
+        num_envs=args.num_envs,
+        observation_keys=('glyphs', 'blstats'))
+    agent = GlyphBlstatsPPOAgent(env_specs)
+    loggers = [FileLogger(args.log)]
+    runner = PPORunner(venv, agent, loggers)
+    runner.run_vectorized(args.num_envs, env)
 
 
 def run_stable():
-    env = MinihackWrapper(gym.make("MiniHack-River-MonsterLava-v0", observation_keys=(['glyphs'])))
+    env = gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=( 'glyphs', 'blstats' ))
     # env = MinihackWrapper(gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=(['glyphs'])))
     model = PPO("MultiInputPolicy", env, verbose=1)
     model.learn(total_timesteps=100000)

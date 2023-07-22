@@ -11,14 +11,6 @@ class AbstractBuffer(ABC):
     def add(self, *args, **kwargs):
         pass
 
-    @property
-    def size(self):
-        pass
-
-    @abstractmethod
-    def sample(self, batch_size):
-        pass
-
     @abstractmethod
     def clear(self):
         pass

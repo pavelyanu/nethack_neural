@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
@@ -5,6 +7,8 @@ from torchrl.data import ReplayBuffer
 
 from src.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, BlstatsHead
 from src.agents.abstract_agent import AbstractAgent
+from src.utils.env_specs import EnvSpecs
+from src.buffers.rollout_buffer import RolloutBuffer
 
 class Buffer:
     def __init__(self, keys=['glyphs', 'blstats']) -> None:
@@ -80,39 +84,53 @@ class GlyphBlstatHead(nn.Module):
 class AbstractPPOAgent(AbstractAgent):
     def __init__(
                 self,
-                observation_space,
-                action_space,
+                env_specs,
                 actor_lr=0.0001,
                 critic_lr=0.001,
                 gamma=0.99,
-                k_epochs=5,
+                epochs=5,
                 eps_clip=0.2,
                 batch_size=32,
-                buffer_size=10000,
+                buffer_size=1000,
                 hidden_layer=64):
-        super().__init__(observation_space, action_space)
-        self.actor_lr = actor_lr
-        self.critic_lr = critic_lr
-        self.gamma = gamma
-        self.k_epochs = k_epochs
-        self.eps_clip = eps_clip
-        self.batch_size = batch_size
-        self.buffer_size = buffer_size
-        self.hidden_layer = hidden_layer
+        super().__init__(env_specs)
+        self._actor_lr = actor_lr
+        self._critic_lr = critic_lr
+        self._gamma = gamma
+        self._epochs = epochs
+        self._eps_clip = eps_clip
+        self._batch_size = batch_size
+        self._buffer_size = buffer_size
+        self._hidden_layer = hidden_layer
+        self._buffer = RolloutBuffer(
+            buffer_size=self._buffer_size,
+            observation_shape=self._observation_space,
+            action_shape=(1,),
+            num_envs=self._num_envs,
+        )
+
+    @abstractmethod
+    def preprocess(self, state):
+        return super().preprocess(state)
 
     def act(self, state, train=True):
         with torch.no_grad():
             action_probs = self.actor(state)
         distribution = Categorical(action_probs)
         action = distribution.sample()
-        return action.item(), distribution.log_prob(action)
+        return action.numpy(), distribution.log_prob(action)
     
-    def save_transition(self, state, action, logprob, reward, next_state, done): 
+    def _save_transition(self, state, action, logprob, reward, next_state, done): 
         with torch.no_grad():
             state_value = self.critic(state)
         self.buffer.add(state, action, logprob, reward, state_value, done)
+    
+    def save_transition(self, state, action, logprob, reward, next_state, done):
+        with torch.no_grad():
+            state_value = self.critic(state)
+        self._buffer.add(state, action, logprob, reward, state_value, done)
 
-    def train(self):
+    def _train(self):
         self.buffer.prepare()
         old_states =self.buffer.state_tensors
         old_actions = self.buffer.action_tensors
@@ -126,7 +144,7 @@ class AbstractPPOAgent(AbstractAgent):
         for reward, done in zip(reversed(rewards), reversed(dones)):
             if done:
                 discounted_reward = 0
-            discounted_reward = reward + self.gamma * discounted_reward
+            discounted_reward = reward + self._gamma * discounted_reward
             returns.insert(0, discounted_reward)
         returns = torch.tensor(returns)
 
@@ -139,10 +157,10 @@ class AbstractPPOAgent(AbstractAgent):
 
         advantages = returns - state_values
 
-        actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.actor_lr)
-        critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.critic_lr)
+        actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self._actor_lr)
+        critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self._critic_lr)
 
-        for _ in range(self.k_epochs):
+        for _ in range(self._epochs):
             action_probs = self.actor(old_states)
             distribution = Categorical(action_probs)
             action_logprobs = distribution.log_prob(old_actions)
@@ -151,7 +169,7 @@ class AbstractPPOAgent(AbstractAgent):
             ratios = torch.exp(action_logprobs - old_logprobs.detach())
 
             surrogate1 = ratios * advantages
-            surrogate2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
+            surrogate2 = torch.clamp(ratios, 1 - self._eps_clip, 1 + self._eps_clip) * advantages
             actor_loss = -torch.min(surrogate1, surrogate2).mean()
 
             critic_loss = nn.MSELoss()(state_values, returns)
@@ -168,6 +186,47 @@ class AbstractPPOAgent(AbstractAgent):
 
         self.buffer.clear()
 
+    def train(self):
+        self._buffer.prepare()
+        old_states = self._buffer.states
+        old_actions = self._buffer.actions
+        old_logprobs = self._buffer.logprobs
+        state_values = self._buffer.state_values
+        rewards = self._buffer.rewards
+        dones = self._buffer.done
+        returns = self._buffer.returns
+        advantages = self._buffer.advantages
+
+        actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self._actor_lr)
+        critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self._critic_lr)
+
+        for _ in range(self._epochs):
+            action_probs = self.actor(old_states)
+            distribution = Categorical(action_probs)
+            action_logprobs = distribution.log_prob(old_actions)
+            state_values = self.critic(old_states)
+
+            ratios = torch.exp(action_logprobs - old_logprobs.detach())
+
+            surrogate1 = ratios * advantages
+            surrogate2 = torch.clamp(ratios, 1 - self._eps_clip, 1 + self._eps_clip) * advantages
+            actor_loss = -torch.min(surrogate1, surrogate2).mean()
+
+            critic_loss = nn.MSELoss()(state_values, returns)
+            
+            actor_optimizer.zero_grad()
+            actor_loss.backward()
+            actor_optimizer.step()
+
+            critic_optimizer.zero_grad()
+            critic_loss.backward()
+            critic_optimizer.step()
+
+        self.actor_old.load_state_dict(self.actor.state_dict())
+
+        self._buffer.clear()
+
+
     def load(self, path):
         paths = [path + 'actor.pkl', path + 'critic.pkl']
         for model, path in zip([self.actor, self.critic], paths):
@@ -183,8 +242,7 @@ class AbstractPPOAgent(AbstractAgent):
 class GlyphPPOAgent(AbstractPPOAgent):
     def __init__(
         self,
-        observation_space,
-        action_space,
+        env_specs,
         actor_lr=0.0001,
         critic_lr=0.001,
         gamma=0.99,
@@ -193,27 +251,30 @@ class GlyphPPOAgent(AbstractPPOAgent):
         batch_size=32,
         buffer_size=10000,
         hidden_layer=64):
-        super().__init__(observation_space, action_space, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
+        super().__init__(env_specs, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
         self.actor = GlyphHeadFlat(
-            observation_space.spaces['glyphs'].shape,
-            action_space.n,
-            hidden_layer)
+            self._observation_space['glyphs'],
+            self._num_actions,
+            self._hidden_layer)
         self.actor_old = GlyphHeadFlat(
-            observation_space.spaces['glyphs'].shape,
-            action_space.n,
-            hidden_layer)
+            self._observation_space['glyphs'],
+            self._num_actions,
+            self._hidden_layer)
         self.critic = GlyphHeadFlat(
-            observation_space.spaces['glyphs'].shape,
+            self._observation_space['glyphs'],
             1,
-            hidden_layer, actor=False)
+            self._hidden_layer, actor=False)
         self.actor_old.load_state_dict(self.actor.state_dict())
         self.buffer = Buffer(keys=['glyphs'])
+
+    def preprocess(self, observation):
+        observation = torch.from_numpy(observation['glyphs']).to(torch.float32)
+        return observation
 
 class GlyphBlstatsPPOAgent(AbstractPPOAgent):
     def __init__(
         self,
-        observation_space,
-        action_space,
+        env_specs,
         actor_lr=0.0001,
         critic_lr=0.001,
         gamma=0.99,
@@ -222,21 +283,26 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
         batch_size=32,
         buffer_size=10000,
         hidden_layer=64):
-        super().__init__(observation_space, action_space, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
+        super().__init__(env_specs, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
         self.actor = GlyphBlstatHead(
-            observation_space.spaces['glyphs'].shape,
-            observation_space.spaces['blstats'].shape,
-            action_space.n,
-            hidden_layer)
+            self._observation_space['glyphs'],
+            self._observation_space['blstats'],
+            self._num_actions,
+            self._hidden_layer)
         self.actor_old = GlyphBlstatHead(
-            observation_space.spaces['glyphs'].shape,
-            observation_space.spaces['blstats'].shape,
-            action_space.n,
-            hidden_layer)
+            self._observation_space['glyphs'],
+            self._observation_space['blstats'],
+            self._num_actions,
+            self._hidden_layer)
         self.critic = GlyphBlstatHead(
-            observation_space.spaces['glyphs'].shape,
-            observation_space.spaces['blstats'].shape,
+            self._observation_space['glyphs'],
+            self._observation_space['blstats'],
             1,
-            hidden_layer, actor=False)
+            self._hidden_layer, actor=False)
         self.actor_old.load_state_dict(self.actor.state_dict())
         self.buffer = Buffer(keys=['glyphs', 'blstats'])
+
+    def preprocess(self, observation):
+        for key in observation.keys():
+            observation[key] = torch.from_numpy(observation[key]).to(torch.float32)
+        return observation
