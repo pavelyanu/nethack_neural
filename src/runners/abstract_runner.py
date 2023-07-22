@@ -27,20 +27,22 @@ class AbstractRunner(ABC):
         for logger in self._loggers:
             logger.log(msg)
 
-    def evaluate(self, num_episodes=100, render=False, agent=None):
+    def evaluate(self, num_episodes=100, render=False, agent=None, env=None):
         if agent is None:
             agent = self.agent
+        if env is None:
+            env = self.env
         total_reward = 0
         for episode in range(num_episodes):
-            state = self.env.reset()
+            state = env.reset()
             done = False
             while not done:
                 if render:
-                    self.env.render()
+                    env.render()
                 action = agent.act(state, train=False)
                 if isinstance(action, tuple):
                     action = action[0]
-                next_state, reward, done, _ = self.env.step(action)
+                next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
         self.log("Reward: {}".format(total_reward / num_episodes))

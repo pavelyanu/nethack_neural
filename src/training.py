@@ -7,6 +7,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import make_vec_env
+
 from agents.ppo_agent import GlyphBlstatsPPOAgent
 from agents.random_agent import RandomAgent
 from loggers.file_logger import FileLogger
@@ -19,10 +22,21 @@ parser.add_argument('--num-episodes', type=int, default=1000, metavar='N',)
 parser.add_argument('--render', action='store_true', default=False)
 parser.add_argument('--log', type=str, default='logs/ppo_training.log')
 parser.add_argument('--model', type=str, default=None)
+parser.add_argument('--num_envs', type=int, default=2)
+parser.add_argument('--stable', action='store_true', default=False)
 
 
 def main(args):
-    env = MinihackWrapper(gym.make("MiniHack-River-MonsterLava-v0", observation_keys=( 'glyphs', 'blstats' )))
+    if args.stable:
+        run_stable()
+    if args.num_envs > 1:
+        train_vectorized(args)
+    else:
+        train(args)
+
+def train(args):
+    env = MinihackWrapper(gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=( 'glyphs', 'blstats' )))
+    # env = MinihackWrapper(gym.make("MiniHack-River-MonsterLava-v0", observation_keys=( 'glyphs', 'blstats' )))
     # env = MinihackWrapper(gym.make("MiniHack-CorridorBattle-v0", observation_keys=( 'glyphs', 'blstats' )))
     observation_space = env.observation_space
     action_space = env.action_space
@@ -40,6 +54,19 @@ def main(args):
     )
     runner = Runner(env, random_agent, loggers)
     runner.evaluate(render=args.render)
+
+def train_vectorized(args):
+    env = gym.vector.make("MiniHack-Room-Monster-15x15-v0", num_envs=args.num_envs, wrappers=[MinihackWrapper], observation_keys=( 'glyphs', 'blstats' ))
+    observation_space = env.observation_space
+    action_space = env.action_space
+
+
+def run_stable():
+    env = MinihackWrapper(gym.make("MiniHack-River-MonsterLava-v0", observation_keys=(['glyphs'])))
+    # env = MinihackWrapper(gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=(['glyphs'])))
+    model = PPO("MultiInputPolicy", env, verbose=1)
+    model.learn(total_timesteps=100000)
+
 
 
 if __name__ == '__main__':

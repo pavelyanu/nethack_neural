@@ -59,7 +59,6 @@ class Buffer:
             del self.state_tensors
             self.prepared = False
 
-
 class GlyphBlstatHead(nn.Module):
     def __init__(self, glyph_shape, blstats_shape, output_shape, hidden_layer, actor=True) -> None:
         super().__init__()
@@ -99,6 +98,7 @@ class AbstractPPOAgent(AbstractAgent):
         self.eps_clip = eps_clip
         self.batch_size = batch_size
         self.buffer_size = buffer_size
+        self.hidden_layer = hidden_layer
 
     def act(self, state, train=True):
         with torch.no_grad():
