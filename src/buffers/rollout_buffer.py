@@ -36,9 +36,9 @@ class RolloutBuffer(AbstractBuffer):
         
     def add(self, state, action, reward, logprob, state_value, done):
         self.add_state(state)
-        self.actions[self.pointer] = torch.tensor(action, device=self.device)
-        self.rewards[self.pointer] = torch.tensor(reward, device=self.device)
-        self.logprobs[self.pointer] = torch.tensor(logprob, device=self.device)
+        self.actions[self.pointer] = torch.tensor(action, device=self.device).unsqueeze(-1)
+        self.rewards[self.pointer] = torch.tensor(reward, device=self.device).unsqueeze(-1)
+        self.logprobs[self.pointer] = torch.tensor(logprob, device=self.device).unsqueeze(-1)
         self.state_values[self.pointer] = torch.tensor(state_value, device=self.device)
         self.done[self.pointer] = torch.tensor(done, device=self.device)
         self.pointer += 1
