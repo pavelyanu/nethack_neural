@@ -80,7 +80,6 @@ class RolloutBuffer(AbstractBuffer):
 
     def compute_GAE(self, gamma=0.99, lambda_=0.95):
         advantages, returns = [], []
-        self.dones = self.dones.to(self.dtype)
         state_values = torch.cat((self.state_values, self.last_values.unsqueeze(0)), dim=0)
         for t in reversed(range(self.buffer_size)):
             td_error = self.rewards[t] + gamma * (1 - self.dones[t]) * state_values[t+1] - self.state_values[t]

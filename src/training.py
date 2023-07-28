@@ -24,11 +24,14 @@ parser.add_argument('--render', action='store_true', default=False)
 parser.add_argument('--log', type=str, default='logs/ppo_training.log')
 parser.add_argument('--model', type=str, default=None)
 parser.add_argument('--num_envs', type=int, default=16)
-parser.add_argument('--num_steps', type=int, default=100000)
-parser.add_argument('--train_step', type=int, default=1000)
-parser.add_argument('--eval_step', type=int, default=5000)
+parser.add_argument('--total_steps', type=int, default=10000)
+parser.add_argument('--worker_steps', type=int, default=1000)
+parser.add_argument('--eval_step', type=int, default=2000)
 parser.add_argument('--batch_size', type=int, default=64)
+parser.add_argument('--hidden_layer', type=int, default=128)
 parser.add_argument('--stable', action='store_true', default=False)
+parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', help='Device to run on')
+parser.add_argument('--save-path', type=str, default='models')
 
 
 def main(args):
@@ -49,20 +52,24 @@ def train_vectorized(args):
     agent = GlyphBlstatsPPOAgent(
         env_specs,
         batch_size=args.batch_size,
+        buffer_size=args.worker_steps,
+        storage_device=args.device,
+        training_device=args.device,
+        hidden_layer=args.hidden_layer,
     )
     loggers = [FileLogger(args.log)]
     runner = PPORunner(venv, agent, loggers)
     runner.run_vectorized(
         args.num_envs,
         env,
-        num_steps=args.num_steps,
-        train_step=args.train_step,
-        eval_step=args.eval_step,
+        total_steps=args.total_steps,
+        worker_steps=args.worker_steps,
+        evaluation_period=args.eval_step,
         render=args.render)
+    
 
 
 def run_stable(args):
-    # env = gym.make("MiniHack-Room-Monster-15x15-v0", observation_keys=( 'glyphs', 'blstats' ))
     env = gym.make("NetHackScore-v0", observation_keys=( 'glyphs', 'blstats' ))
     model = PPO("MultiInputPolicy", env, verbose=1)
     model.learn(total_timesteps=100000)
@@ -72,4 +79,12 @@ def run_stable(args):
 if __name__ == '__main__':
     args = parser.parse_args()
     # main(args)
-    cProfile.run('main(args)', filename='ppo.prof')
+    if args.stable:
+        cProfile.run('main(args)', filename='stable.prof')
+    else:
+        if args.device == 'cuda':
+            torch.cuda.set_device(0)
+            cProfile.run('main(args)', filename='ppo.cuda.prof')
+        else:
+            torch.cuda.set_device(-1)
+            cProfile.run('main(args)', filename='ppo.cpu.prof')

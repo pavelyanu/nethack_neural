@@ -53,6 +53,7 @@ class AbstractPPOAgent(AbstractAgent):
             buffer_size=self._buffer_size,
             num_envs=self._num_envs,
             device=self._storage_device)
+        self.counter = 0
 
     @abstractmethod
     def preprocess(self, state):
@@ -86,7 +87,6 @@ class AbstractPPOAgent(AbstractAgent):
     def train(self):
 
         self._buffer.prepare()
-
         for _ in range(self._epochs):
             for batch in self._buffer.get_batches(self._batch_size):
                 states_batch, actions_batch, rewards_batch, logprobs_batch, state_values_batch, dones_batch, returns_batch, advantages_batch = batch
@@ -129,17 +129,20 @@ class AbstractPPOAgent(AbstractAgent):
 
 class GlyphPPOAgent(AbstractPPOAgent):
     def __init__(
-        self,
-        env_specs,
-        actor_lr=0.0001,
-        critic_lr=0.001,
-        gamma=0.99,
-        k_epochs=10,
-        eps_clip=0.2,
-        batch_size=64,
-        buffer_size=2000,
-        hidden_layer=64):
-        super().__init__(env_specs, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
+            self,
+            env_specs,
+            actor_lr=0.0001,
+            critic_lr=0.001,
+            gamma=0.99,
+            epochs=10,
+            eps_clip=0.2,
+            batch_size=64,
+            buffer_size=2000,
+            hidden_layer=64,
+            storage_device='cpu',
+            training_device=None,
+            tensor_type=torch.float32):
+        super().__init__(env_specs, actor_lr, critic_lr, gamma, epochs, eps_clip, batch_size, buffer_size, hidden_layer, storage_device, training_device, tensor_type)
         self._actor = GlyphHeadFlat(
             self._observation_space['glyphs'],
             self._num_actions,
@@ -164,17 +167,20 @@ class GlyphPPOAgent(AbstractPPOAgent):
 
 class GlyphBlstatsPPOAgent(AbstractPPOAgent):
     def __init__(
-        self,
-        env_specs,
-        actor_lr=0.0001,
-        critic_lr=0.001,
-        gamma=0.99,
-        k_epochs=10,
-        eps_clip=0.2,
-        batch_size=64,
-        buffer_size=2000,
-        hidden_layer=64):
-        super().__init__(env_specs, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
+            self,
+            env_specs,
+            actor_lr=0.0001,
+            critic_lr=0.001,
+            gamma=0.99,
+            epochs=10,
+            eps_clip=0.2,
+            batch_size=64,
+            buffer_size=2000,
+            hidden_layer=64,
+            storage_device='cpu',
+            training_device=None,
+            tensor_type=torch.float32):
+        super().__init__(env_specs, actor_lr, critic_lr, gamma, epochs, eps_clip, batch_size, buffer_size, hidden_layer, storage_device, training_device, tensor_type)
         self._actor = GlyphBlstatHead(
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
