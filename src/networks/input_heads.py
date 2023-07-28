@@ -52,3 +52,22 @@ class GlyphHeadConv(nn.Module):
         x = torch.tanh(self.fc2(x))
         value = self.fc3(x)
         return value
+
+
+class GlyphBlstatHead(nn.Module):
+    def __init__(self, glyph_shape, blstats_shape, output_shape, hidden_layer, actor=True) -> None:
+        super().__init__()
+        self.glyph_head = GlyphHeadFlat(glyph_shape, hidden_layer)
+        self.blstats_head = BlstatsHead(blstats_shape, hidden_layer)
+        self.fc = nn.Linear(2 * hidden_layer, output_shape)
+        self.activation = nn.Softmax(dim=-1) if actor else nn.Identity()
+
+    def forward(self, x):
+        glyph = x['glyphs']
+        blstats = x['blstats']
+        glyph = self.glyph_head(glyph)
+        blstats = self.blstats_head(blstats)
+        x = torch.cat([glyph, blstats], dim=-1)
+        x = self.fc(x)
+        x = self.activation(x)
+        return x

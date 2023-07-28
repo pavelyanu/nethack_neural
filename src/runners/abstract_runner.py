@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from numpy import ndarray
+from datetime import datetime
 
 class AbstractRunner(ABC):
     @abstractmethod
@@ -19,15 +21,11 @@ class AbstractRunner(ABC):
     def agent(self):
         return self._agent
 
-    @abstractmethod
-    def run(self, num_episodes=100, render=False):
-        pass
-
     def log(self, msg):
         for logger in self._loggers:
             logger.log(msg)
 
-    def evaluate(self, num_episodes=100, render=False, agent=None, env=None):
+    def evaluate(self, num_episodes=10, render=False, agent=None, env=None):
         if agent is None:
             agent = self.agent
         if env is None:
@@ -39,10 +37,13 @@ class AbstractRunner(ABC):
             while not done:
                 if render:
                     env.render()
+                state = agent.preprocess(state, add_batch_dim=True)
                 action = agent.act(state, train=False)
-                if isinstance(action, tuple):
+                while len(action) > 1:
+                    action = action[0]
+                if isinstance(action, tuple) or isinstance(action, list) or isinstance(action, ndarray):
                     action = action[0]
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
-        self.log("Reward: {}".format(total_reward / num_episodes))
+        self.log("Time: {} Reward: {}".format(datetime.now().strftime("%H:%M:%S"), total_reward / num_episodes))

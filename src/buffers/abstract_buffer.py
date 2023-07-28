@@ -3,9 +3,9 @@ from numpy import ndarray
 
 
 class AbstractBuffer(ABC):
-    def __init__(self, buffer_size, n_agents=1):
+    def __init__(self, buffer_size, num_envs=1):
         self.buffer_size = buffer_size
-        self.n_agents = n_agents
+        self.num_envs = num_envs
 
     @abstractmethod
     def add(self, *args, **kwargs):

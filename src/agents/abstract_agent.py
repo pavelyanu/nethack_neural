@@ -22,7 +22,7 @@ class AbstractAgent(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def preprocess(self, state):
+    def preprocess(self, state, add_batch_dim=False):
         pass
 
     @abc.abstractmethod
