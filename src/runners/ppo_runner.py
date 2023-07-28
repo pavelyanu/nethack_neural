@@ -15,14 +15,13 @@ class PPORunner(AbstractRunner):
         while timesteps < num_steps:
             actions, logprobs = self.agent.act(states)
             next_states, rewards, done, _ = self.env.step(actions)
-            transition = Transition(
+            self.agent.save_transition(
                 state=states,
                 action=actions,
                 reward=rewards,
                 logprob=logprobs,
-                done=done,
+                done=done
             )
-            self.agent.save_transition(transition)
             states = next_states
             states = self.agent.preprocess(states)
             timesteps += num_envs

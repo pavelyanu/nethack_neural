@@ -23,10 +23,10 @@ parser = argparse.ArgumentParser(description='Train a PPO agent on MiniHack')
 parser.add_argument('--render', action='store_true', default=False)
 parser.add_argument('--log', type=str, default='logs/ppo_training.log')
 parser.add_argument('--model', type=str, default=None)
-parser.add_argument('--num_envs', type=int, default=1)
-parser.add_argument('--num_steps', type=int, default=5000)
+parser.add_argument('--num_envs', type=int, default=16)
+parser.add_argument('--num_steps', type=int, default=100000)
 parser.add_argument('--train_step', type=int, default=1000)
-parser.add_argument('--eval_step', type=int, default=1000)
+parser.add_argument('--eval_step', type=int, default=5000)
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--stable', action='store_true', default=False)
 
@@ -71,5 +71,5 @@ def run_stable(args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    main(args)
-    # cProfile.run('main(args)', filename='ppo.prof')
+    # main(args)
+    cProfile.run('main(args)', filename='ppo.prof')

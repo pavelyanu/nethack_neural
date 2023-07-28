@@ -9,8 +9,8 @@ from torchrl.data import ReplayBuffer
 from src.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, GlyphBlstatHead
 from src.agents.abstract_agent import AbstractAgent
 from src.utils.env_specs import EnvSpecs
-from src.buffers.rollout_buffer import RolloutBuffer, RolloutBufferDataset
-from src.utils.transition import Transition
+from src.buffers.rollout_buffer import RolloutBuffer
+from src.utils.transition import Transition, TransitionFactory
 
 class AbstractPPOAgent(AbstractAgent):
     def __init__(
@@ -25,7 +25,8 @@ class AbstractPPOAgent(AbstractAgent):
                 buffer_size=2000,
                 hidden_layer=64,
                 storage_device='cpu',
-                training_device=None):
+                training_device=None,
+                tensor_type=torch.float32):
         super().__init__(env_specs)
         self._actor_lr = actor_lr
         self._critic_lr = critic_lr
@@ -36,6 +37,7 @@ class AbstractPPOAgent(AbstractAgent):
         self._buffer_size = buffer_size
         self._hidden_layer = hidden_layer
         self._storage_device = torch.device(storage_device)
+        self._tensor_type = tensor_type
         if training_device is None:
             self._training_device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         else:
@@ -45,10 +47,10 @@ class AbstractPPOAgent(AbstractAgent):
                 raise ValueError('Cuda device not available')
             else:
                 self._training_device = torch.device(training_device)
+        self._transition_factory = TransitionFactory(self, device=self._storage_device, dtype=self._tensor_type)
         self._buffer = RolloutBuffer(
+            self._transition_factory,
             buffer_size=self._buffer_size,
-            observation_shape=self._observation_space,
-            action_shape=(1,),
             num_envs=self._num_envs,
             device=self._storage_device)
 
@@ -56,37 +58,42 @@ class AbstractPPOAgent(AbstractAgent):
     def preprocess(self, state):
         return super().preprocess(state)
 
-    def act(self, state, train=True):
+    def critic(self, state):
         with torch.no_grad():
-            action_probs = self.actor(state)
+            state_value = self._critic(state)
+        return state_value
+    
+    def actor(self, state):
+        with torch.no_grad():
+            action_probs = self._actor(state)
+        return action_probs
+
+    def act(self, state, train=True):
+        action_probs = self.actor(state)
         distribution = Categorical(action_probs)
         action = distribution.sample()
         return action.numpy(), distribution.log_prob(action)
     
-    def save_transition(self, transition):
-        with torch.no_grad():
-            state_value = self.critic(transition.state)
-        transition.state_value = state_value
+    def save_transition(self, *, state, action, reward, logprob, done):
+        transition = self._transition_factory.create(state, action, reward, logprob, done)
         self._buffer.add(transition)
     
     def last_state(self, state):
         with torch.no_grad():
-            state_value = self.critic(state)
+            state_value = self._critic(state)
         self._buffer.set_last_values(state_value)
 
     def train(self):
 
         self._buffer.prepare()
 
-        buffer_dataset = RolloutBufferDataset(self._buffer)
-        buffer_loader = DataLoader(buffer_dataset, batch_size=self._batch_size, shuffle=True)
-
         for _ in range(self._epochs):
-            for states_batch, actions_batch, rewards_batch, logprobs_batch, state_values_batch, dones_batch, returns_batch, advantages_batch in buffer_loader:
-                action_probs = self.actor(states_batch)
+            for batch in self._buffer.get_batches(self._batch_size):
+                states_batch, actions_batch, rewards_batch, logprobs_batch, state_values_batch, dones_batch, returns_batch, advantages_batch = batch
+                action_probs = self._actor(states_batch)
                 distribution = Categorical(action_probs)
                 action_logprobs = distribution.log_prob(actions_batch)
-                state_values = self.critic(states_batch)
+                state_values = self._critic(states_batch)
 
                 ratios = torch.exp(action_logprobs - logprobs_batch.detach())
 
@@ -104,19 +111,19 @@ class AbstractPPOAgent(AbstractAgent):
                 critic_loss.backward()
                 self._critic_optimizer.step()
         
-        self.actor_old.load_state_dict(self.actor.state_dict())
+        self.actor_old.load_state_dict(self._actor.state_dict())
         self._buffer.clear()
 
 
     def load(self, path):
         paths = [path + 'actor.pkl', path + 'critic.pkl']
-        for model, path in zip([self.actor, self.critic], paths):
+        for model, path in zip([self._actor, self._critic], paths):
             model.load_state_dict(torch.load(path))
-        self.actor_old.load_state_dict(self.actor.state_dict())
+        self.actor_old.load_state_dict(self._actor.state_dict())
 
     def save(self, path):
         paths = [path + 'actor.pkl', path + 'critic.pkl']
-        for model, path in zip([self.actor, self.critic], paths):
+        for model, path in zip([self._actor, self._critic], paths):
             torch.save(model.state_dict(), path)
 
 
@@ -133,21 +140,21 @@ class GlyphPPOAgent(AbstractPPOAgent):
         buffer_size=2000,
         hidden_layer=64):
         super().__init__(env_specs, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
-        self.actor = GlyphHeadFlat(
+        self._actor = GlyphHeadFlat(
             self._observation_space['glyphs'],
             self._num_actions,
             self._hidden_layer)
-        self.actor_old = GlyphHeadFlat(
+        self._actor_old = GlyphHeadFlat(
             self._observation_space['glyphs'],
             self._num_actions,
             self._hidden_layer)
-        self.critic = GlyphHeadFlat(
+        self._critic = GlyphHeadFlat(
             self._observation_space['glyphs'],
             1,
             self._hidden_layer, actor=False)
-        self.actor_old.load_state_dict(self.actor.state_dict())
-        self._actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self._actor_lr)
-        self._critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self._critic_lr)
+        self._actor_old.load_state_dict(self._actor.state_dict())
+        self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
+        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
 
     def preprocess(self, observation, add_batch_dim=False):
         observation = torch.from_numpy(observation['glyphs']).to(torch.float32)
@@ -168,7 +175,7 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
         buffer_size=2000,
         hidden_layer=64):
         super().__init__(env_specs, actor_lr, critic_lr, gamma, k_epochs, eps_clip, batch_size, buffer_size, hidden_layer)
-        self.actor = GlyphBlstatHead(
+        self._actor = GlyphBlstatHead(
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
             self._num_actions,
@@ -178,14 +185,14 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
             self._observation_space['blstats'],
             self._num_actions,
             self._hidden_layer)
-        self.critic = GlyphBlstatHead(
+        self._critic = GlyphBlstatHead(
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
             1,
             self._hidden_layer, actor=False)
-        self.actor_old.load_state_dict(self.actor.state_dict())
-        self._actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self._actor_lr)
-        self._critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=self._critic_lr)
+        self.actor_old.load_state_dict(self._actor.state_dict())
+        self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
+        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
 
     def preprocess(self, observation, add_batch_dim=False):
         for key in observation.keys():
