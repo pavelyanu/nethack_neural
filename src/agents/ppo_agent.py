@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.distributions import Categorical
 from torchrl.data import ReplayBuffer
 
-from src.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, GlyphBlstatHead
+from src.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, GlyphBlstatHead, CartPoleHead
 from src.agents.abstract_agent import AbstractAgent
 from src.utils.env_specs import EnvSpecs
 from src.buffers.rollout_buffer import RolloutBuffer
@@ -72,8 +72,11 @@ class AbstractPPOAgent(AbstractAgent):
     def act(self, state, train=True):
         action_probs = self.actor(state)
         distribution = Categorical(action_probs)
-        action = distribution.sample()
-        return action.numpy(), distribution.log_prob(action)
+        if train:
+            action = distribution.sample()
+        else:
+            action = torch.argmax(action_probs)
+        return action.cpu().numpy(), distribution.log_prob(action)
     
     def save_transition(self, *, state, action, reward, logprob, done):
         transition = self._transition_factory.create(state, action, reward, logprob, done)
@@ -85,14 +88,13 @@ class AbstractPPOAgent(AbstractAgent):
         self._buffer.set_last_values(state_value)
 
     def train(self):
-
         self._buffer.prepare()
         for _ in range(self._epochs):
             for batch in self._buffer.get_batches(self._batch_size):
                 states_batch, actions_batch, rewards_batch, logprobs_batch, state_values_batch, dones_batch, returns_batch, advantages_batch = batch
                 action_probs = self._actor(states_batch)
                 distribution = Categorical(action_probs)
-                action_logprobs = distribution.log_prob(actions_batch)
+                action_logprobs = distribution.log_prob(torch.squeeze(actions_batch, -1)).unsqueeze(-1)
                 state_values = self._critic(states_batch)
 
                 ratios = torch.exp(action_logprobs - logprobs_batch.detach())
@@ -146,21 +148,24 @@ class GlyphPPOAgent(AbstractPPOAgent):
         self._actor = GlyphHeadFlat(
             self._observation_space['glyphs'],
             self._num_actions,
-            self._hidden_layer)
+            self._hidden_layer,
+            device=self._training_device)
         self._actor_old = GlyphHeadFlat(
             self._observation_space['glyphs'],
             self._num_actions,
-            self._hidden_layer)
+            self._hidden_layer,
+            device=self._training_device)
         self._critic = GlyphHeadFlat(
             self._observation_space['glyphs'],
             1,
-            self._hidden_layer, actor=False)
+            self._hidden_layer, actor=False,
+            device=self._training_device,)
         self._actor_old.load_state_dict(self._actor.state_dict())
         self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
         self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
 
     def preprocess(self, observation, add_batch_dim=False):
-        observation = torch.from_numpy(observation['glyphs']).to(torch.float32)
+        observation = torch.from_numpy(observation['glyphs']).to(dtype=self._tensor_type, device=self._training_device)
         if add_batch_dim:
             observation = observation.unsqueeze(0)
         return observation
@@ -185,24 +190,68 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
             self._num_actions,
-            self._hidden_layer)
+            self._hidden_layer,
+            device=self._training_device)
         self.actor_old = GlyphBlstatHead(
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
             self._num_actions,
-            self._hidden_layer)
+            self._hidden_layer,
+            device=self._training_device)
         self._critic = GlyphBlstatHead(
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
             1,
-            self._hidden_layer, actor=False)
+            self._hidden_layer, actor=False,
+            device=self._training_device)
         self.actor_old.load_state_dict(self._actor.state_dict())
         self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
         self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
 
     def preprocess(self, observation, add_batch_dim=False):
         for key in observation.keys():
-            observation[key] = torch.from_numpy(observation[key]).to(torch.float32)
+            observation[key] = torch.from_numpy(observation[key]).to(dtype=self._tensor_type, device=self._training_device)
             if add_batch_dim:
                 observation[key] = observation[key].unsqueeze(0)
+        return observation
+
+class CartPolePPOAgent(AbstractPPOAgent):
+    def __init__(
+            self,
+            env_specs,
+            actor_lr=0.0001,
+            critic_lr=0.001,
+            gamma=0.99,
+            epochs=10,
+            eps_clip=0.2,
+            batch_size=64,
+            buffer_size=2000,
+            hidden_layer=64,
+            storage_device='cpu',
+            training_device=None,
+            tensor_type=torch.float32):
+        super().__init__(env_specs, actor_lr, critic_lr, gamma, epochs, eps_clip, batch_size, buffer_size, hidden_layer, storage_device, training_device, tensor_type)
+        self._actor = CartPoleHead(
+            self._observation_space,
+            self._num_actions,
+            self._hidden_layer,
+            device=self._training_device)
+        self.actor_old = CartPoleHead(
+            self._observation_space,
+            self._num_actions,
+            self._hidden_layer,
+            device=self._training_device)
+        self._critic = CartPoleHead(
+            self._observation_space,
+            1,
+            self._hidden_layer, actor=False,
+            device=self._training_device)
+        self.actor_old.load_state_dict(self._actor.state_dict())
+        self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
+        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
+
+    def preprocess(self, observation, add_batch_dim=False):
+        observation = torch.from_numpy(observation).to(dtype=self._tensor_type, device=self._training_device)
+        if add_batch_dim:
+            observation = observation.unsqueeze(0)
         return observation
