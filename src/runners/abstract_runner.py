@@ -31,19 +31,26 @@ class AbstractRunner(ABC):
         if env is None:
             env = self.env
         total_reward = 0
+        time = 0
         for episode in range(num_episodes):
             state = env.reset()
             done = False
             while not done:
                 if render:
                     env.render()
-                state = agent.preprocess(state, add_batch_dim=True)
                 action = agent.act(state, train=False)
-                while len(action) > 1:
-                    action = action[0]
-                if isinstance(action, tuple) or isinstance(action, list) or isinstance(action, ndarray):
-                    action = action[0]
+                try:
+                    while len(action) > 1:
+                        action = action[0]
+                except:
+                    pass
+                try:
+                    if isinstance(action, tuple) or isinstance(action, list) or isinstance(action, ndarray):
+                        action = action[0]
+                except:
+                    pass
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
-        self.log("Time: {} Reward: {}".format(datetime.now().strftime("%H:%M:%S"), total_reward / num_episodes))
+                time += 1
+        self.log(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, Evaluation reward: {total_reward / num_episodes}, Average length: {time / num_episodes}")

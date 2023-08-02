@@ -22,23 +22,26 @@ class TransitionFactory:
                     {key: value.to(device=self.device, dtype=self.dtype) for key, value in state.items()}
             else:
                 self.state_function = lambda state: \
-                    {key: torch.tensor(value, device=self.device, dtype=self.dtype) for key, value in state.items()}
+                    {key: torch.from_numpy(value).to(device=self.device, dtype=self.dtype) for key, value in state.items()}
         elif isinstance(state, torch.Tensor):
             self.state_function = lambda state: state.to(device=self.device, dtype=self.dtype)
         else:
             self.state_function = lambda state: torch.tensor(state, device=self.device, dtype=self.dtype)
 
     def first_transition(self, state, action, reward, logprob, done):
+        self.state_shape = {key: value.shape for key, value in state.items()} if isinstance(state, dict) else state.shape
+
+        self.set_state_function(state)
+
+        state = self.state_function(state)
         state_value = self.agent.critic(state)
 
-        self.state_shape = {key: value.shape for key, value in state.items()} if isinstance(state, dict) else state.shape
         self.action_shape = action.shape
         self.reward_shape = reward.shape
         self.logprob_shape = logprob.shape
         self.done_shape = done.shape
         self.state_value_shape = state_value.shape
 
-        self.set_state_function(state)
         self._set_function(action, 'action')
         self._set_function(reward, 'reward')
         self._set_function(logprob, 'logprob')
@@ -46,16 +49,30 @@ class TransitionFactory:
         self._set_function(state_value, 'state_value')
 
         self.create = self.create_transition
-        return self.create(state, action, reward, logprob, done)
+
+        action = self.action_function(action)
+        reward = self.reward_function(reward)
+        logprob = self.logprob_function(logprob)
+        done = self.done_function(done)
+        state_value = self.agent.critic(state)
+        state_value = self.state_value_function(state_value)
+
+        return Transition(
+            state=state,
+            action=action,
+            reward=reward,
+            logprob=logprob,
+            done=done,
+            state_value=state_value
+        )
 
     def create_transition(self, state, action, reward, logprob, done):
-        state_value = self.agent.critic(state)
-
         state = self.state_function(state)
         action = self.action_function(action)
         reward = self.reward_function(reward)
         logprob = self.logprob_function(logprob)
         done = self.done_function(done)
+        state_value = self.agent.critic(state)
         state_value = self.state_value_function(state_value)
 
         return Transition(

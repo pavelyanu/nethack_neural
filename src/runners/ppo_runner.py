@@ -13,7 +13,6 @@ class PPORunner(AbstractRunner):
         train_counter = 0
         eval_counter = 0
         states = self.env.reset()
-        states = self.agent.preprocess(states)
         while timesteps < total_steps:
             actions, logprobs = self.agent.act(states)
             next_states, rewards, done, _ = self.env.step(actions)
@@ -25,7 +24,6 @@ class PPORunner(AbstractRunner):
                 done=done
             )
             states = next_states
-            states = self.agent.preprocess(states)
             timesteps += num_envs
             train_counter += num_envs
             eval_counter += num_envs
