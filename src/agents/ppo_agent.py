@@ -13,6 +13,26 @@ from src.buffers.rollout_buffer import RolloutBuffer
 from src.utils.transition import Transition, TransitionFactory
 
 class AbstractPPOAgent(AbstractAgent):
+    """Abstract base class for Proximal Policy Optimization (PPO) agents.
+
+    This class provides a generic implementation of PPO, an algorithm for training policy-based agents in reinforcement learning. 
+    It defines methods for acting in the environment, saving and loading models, and performing training updates. 
+    Specific PPO agents can be implemented by inheriting from this class and implementing the abstract methods.
+
+    Args:
+        env_specs (EnvSpecs): The specifications of the environment.
+        actor_lr (float): The learning rate for the actor network.
+        critic_lr (float): The learning rate for the critic network.
+        gamma (float): The discount factor.
+        epochs (int): The number of epochs to run during each update.
+        eps_clip (float): The clip range for the policy update.
+        batch_size (int): The size of the mini-batches used for updates.
+        buffer_size (int): The size of the buffer used for storing transitions.
+        hidden_layer (int): The size of the hidden layers in the actor and critic networks.
+        storage_device (str): The device to use for storing transitions ('cpu' or 'cuda').
+        training_device (str): The device to use for training ('cpu' or 'cuda').
+        tensor_type (torch.dtype): The type of the tensors used in computations.
+    """
     def __init__(
                 self,
                 env_specs,
@@ -57,23 +77,64 @@ class AbstractPPOAgent(AbstractAgent):
 
     @abstractmethod
     def preprocess(self, state):
+        """Preprocesses the state before feeding it into the networks.
+
+        Args:
+            state: The state to be preprocessed.
+
+        Returns:
+            The preprocessed state.
+        """
         return super().preprocess(state)
 
     @abstractmethod
     def hasbatchdim(self, state):
+        """Checks if the state has a batch dimension.
+
+        Args:
+            state: The state to be checked.
+
+        Returns:
+            bool: True if the state has a batch dimension, False otherwise.
+        """
         pass
 
     def critic(self, state):
+        """Computes the value estimates for the given state using the critic network.
+
+        Args:
+            state: The state for which to compute the value estimates.
+
+        Returns:
+            The value estimates computed by the critic network.
+        """
         with torch.no_grad():
             state_value = self._critic(state)
         return state_value
     
     def actor(self, state):
+        """Computes the action probabilities for the given state using the actor network.
+
+        Args:
+            state: The state for which to compute the action probabilities.
+
+        Returns:
+            The action probabilities computed by the actor network.
+        """
         with torch.no_grad():
             action_probs = self._actor(state)
         return action_probs
 
     def act(self, state, train=True):
+        """Selects an action for the given state using the actor network.
+
+        Args:
+            state: The state for which to select an action.
+            train (bool): Whether the agent is training or not.
+
+        Returns:
+            The selected action and the corresponding log-probability.
+        """
         state = self.preprocess(state)
         action_probs = self.actor(state)
         distribution = Categorical(action_probs)
@@ -84,16 +145,31 @@ class AbstractPPOAgent(AbstractAgent):
         return action.cpu().numpy(), distribution.log_prob(action)
     
     def save_transition(self, *, state, action, reward, logprob, done):
+        """Stores a transition in the buffer.
+
+        Args:
+            state: The state from which the action was taken.
+            action: The action that was taken.
+            reward: The reward that was obtained.
+            logprob: The log-probability of the action.
+            done: Whether the episode ended after this action.
+        """
         transition = self._transition_factory.create(state, action, reward, logprob, done)
         self._buffer.add(transition)
     
     def last_state(self, state):
+        """Processes the final state of an episode.
+
+        Args:
+            state: The final state of the episode.
+        """
         state = self.preprocess(state)
         with torch.no_grad():
             state_value = self._critic(state)
         self._buffer.set_last_values(state_value)
 
     def train(self):
+        """Performs a training update."""
         self._buffer.prepare()
         for _ in range(self._epochs):
             for batch in self._buffer.get_batches(self._batch_size):
@@ -124,18 +200,46 @@ class AbstractPPOAgent(AbstractAgent):
 
 
     def load(self, path):
+        """Loads the model parameters from the specified path.
+
+        Args:
+            path (str): The path from which to load the model parameters.
+        """ 
         paths = [path + 'actor.pkl', path + 'critic.pkl']
         for model, path in zip([self._actor, self._critic], paths):
             model.load_state_dict(torch.load(path))
         self._actor_old.load_state_dict(self._actor.state_dict())
 
     def save(self, path):
+        """Saves the model parameters to the specified path.
+
+        Args:
+            path (str): The path to which to save the model parameters.
+        """
         paths = [path + 'actor.pkl', path + 'critic.pkl']
         for model, path in zip([self._actor, self._critic], paths):
             torch.save(model.state_dict(), path)
 
 
 class GlyphPPOAgent(AbstractPPOAgent):
+    """PPO agent that uses a GlyphHeadFlat network.
+
+    This agent is specifically designed for environments where the states are represented as glyphs.
+
+    Args:
+        env_specs (EnvSpecs): The specifications of the environment.
+        actor_lr (float): The learning rate for the actor network.
+        critic_lr (float): The learning rate for the critic network.
+        gamma (float): The discount factor.
+        epochs (int): The number of epochs to run during each update.
+        eps_clip (float): The clip range for the policy update.
+        batch_size (int): The size of the mini-batches used for updates.
+        buffer_size (int): The size of the buffer used for storing transitions.
+        hidden_layer (int): The size of the hidden layers in the actor and critic networks.
+        storage_device (str): The device to use for storing transitions ('cpu' or 'cuda').
+        training_device (str): The device to use for training ('cpu' or 'cuda').
+        tensor_type (torch.dtype): The type of the tensors used in computations.
+    """
     def __init__(
             self,
             env_specs,
@@ -188,6 +292,24 @@ class GlyphPPOAgent(AbstractPPOAgent):
 
 
 class GlyphBlstatsPPOAgent(AbstractPPOAgent):
+    """PPO agent that uses a GlyphBlstatHead network.
+
+    This agent is specifically designed for environments where the states are represented as both glyphs and blstats.
+
+    Args:
+        env_specs (EnvSpecs): The specifications of the environment.
+        actor_lr (float): The learning rate for the actor network.
+        critic_lr (float): The learning rate for the critic network.
+        gamma (float): The discount factor.
+        epochs (int): The number of epochs to run during each update.
+        eps_clip (float): The clip range for the policy update.
+        batch_size (int): The size of the mini-batches used for updates.
+        buffer_size (int): The size of the buffer used for storing transitions.
+        hidden_layer (int): The size of the hidden layers in the actor and critic networks.
+        storage_device (str): The device to use for storing transitions ('cpu' or 'cuda').
+        training_device (str): The device to use for training ('cpu' or 'cuda').
+        tensor_type (torch.dtype): The type of the tensors used in computations.
+    """
     def __init__(
             self,
             env_specs,
@@ -240,6 +362,24 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
             return True
     
 class CartPolePPOAgent(AbstractPPOAgent):
+    """PPO agent that uses a CartPoleHead network.
+
+    This agent is specifically designed for the CartPole environment.
+
+    Args:
+        env_specs (EnvSpecs): The specifications of the environment.
+        actor_lr (float): The learning rate for the actor network.
+        critic_lr (float): The learning rate for the critic network.
+        gamma (float): The discount factor.
+        epochs (int): The number of epochs to run during each update.
+        eps_clip (float): The clip range for the policy update.
+        batch_size (int): The size of the mini-batches used for updates.
+        buffer_size (int): The size of the buffer used for storing transitions.
+        hidden_layer (int): The size of the hidden layers in the actor and critic networks.
+        storage_device (str): The device to use for storing transitions ('cpu' or 'cuda').
+        training_device (str): The device to use for training ('cpu' or 'cuda').
+        tensor_type (torch.dtype): The type of the tensors used in computations.
+    """
     def __init__(
             self,
             env_specs,

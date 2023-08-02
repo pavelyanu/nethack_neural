@@ -1,9 +1,10 @@
 import numpy as np
 from src.agents.abstract_agent import AbstractAgent
+from src.utils.env_specs import EnvSpecs
 
 class RandomAgent(AbstractAgent):
-    def __init__(self, observation_space, action_space):
-        super().__init__(observation_space, action_space)
+    def __init__(self, env_specs):
+        super().__init__(env_specs)
 
     def act(self, state):
         return np.random.randint(0, self._num_actions)
