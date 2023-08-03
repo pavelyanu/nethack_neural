@@ -3,6 +3,16 @@ from numpy import ndarray
 from datetime import datetime
 
 class AbstractRunner(ABC):
+    """Abstract base class for running reinforcement learning experiments.
+
+    This class provides a generic runner for conducting experiments in a reinforcement learning environment. 
+    It handles the interaction between the agent and the environment and provides logging capabilities.
+
+    Args:
+        env (gym.Env): The gym environment in which to run the experiments.
+        agent (AbstractAgent): The agent that will interact with the environment.
+        loggers (list): A list of loggers for logging experiment results.
+    """
     @abstractmethod
     def __init__(self, env, agent, loggers=[]):
         self._env = env
@@ -15,23 +25,59 @@ class AbstractRunner(ABC):
 
     @property
     def env(self):
+        """The gym environment in which to run the experiments."""
         return self._env
 
     @property
     def agent(self):
+        """The agent that will interact with the environment."""
         return self._agent
 
-    def log(self, msg):
-        for logger in self._loggers:
-            logger.log(msg)
+    @abstractmethod
+    def run(self, *args, **kwargs):
+        """Runs the experiment. This method must be implemented by subclasses."""
+        pass
 
-    def evaluate(self, num_episodes=10, render=False, agent=None, env=None):
+    def log_message(self, msg):
+        """Logs a message.
+
+        Args:
+            msg (str): The message to log.
+        """
+        time = datetime.now()
+        for logger in self._loggers:
+            logger.log_message(time, msg)
+    
+    def log_stats(self, *, timestep, reward, length):
+        """Logs statistics about the experiment.
+
+        Args:
+            timestep (int): The current timestep of the experiment.
+            reward (float): The reward obtained in the current timestep.
+            length (int): The length of the experiment.
+        """
+        time = datetime.now()
+        for logger in self._loggers:
+            logger.log_stats(time=time, timestep=timestep, reward=reward, length=length)
+
+    def evaluate(self, timestep, num_episodes=10, render=False, agent=None, env=None):
+        """Evaluates the performance of the agent.
+
+        This method runs a number of episodes in the environment using the agent's policy and logs the results.
+
+        Args:
+            timestep (int): The current timestep of the experiment.
+            num_episodes (int): The number of episodes to run for the evaluation.
+            render (bool): Whether to render the environment.
+            agent (AbstractAgent): The agent to use for the evaluation. If None, uses the runner's agent.
+            env (gym.Env): The environment to use for the evaluation. If None, uses the runner's environment.
+        """
         if agent is None:
             agent = self.agent
         if env is None:
             env = self.env
         total_reward = 0
-        time = 0
+        length = 0
         for episode in range(num_episodes):
             state = env.reset()
             done = False
@@ -52,5 +98,6 @@ class AbstractRunner(ABC):
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
-                time += 1
-        self.log(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, Evaluation reward: {total_reward / num_episodes}, Average length: {time / num_episodes}")
+                length += 1
+        self.log_message(f"Evaluation reward: {total_reward / num_episodes}, Average length: {length / num_episodes}")
+        self.log_stats(timestep=timestep, reward=total_reward / num_episodes, length=length / num_episodes)

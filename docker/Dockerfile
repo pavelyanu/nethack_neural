@@ -11,8 +11,10 @@ RUN pip install nle torchrl
 # Set the working directory
 WORKDIR /data
 
-RUN git clone https://github.com/dungeonsdatasubmission/nld-aa-taster.git
+# RUN git clone https://github.com/dungeonsdatasubmission/nld-aa-taster.git
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip
 RUN pip install minihack
 RUN pip install stable-baselines3[extra]
+RUN pip install plotext
+RUN pip install click

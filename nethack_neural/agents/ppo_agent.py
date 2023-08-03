@@ -141,7 +141,10 @@ class AbstractPPOAgent(AbstractAgent):
         if train:
             action = distribution.sample()
         else:
-            action = torch.argmax(action_probs)
+            # action = torch.argmax(action_probs)
+            # TODO: For some reason argmaxing really messes up the agent's performance
+            # When using argmax, the agent is observed hiding in a corner and not moving
+            action = distribution.sample()
         return action.cpu().numpy(), distribution.log_prob(action)
     
     def save_transition(self, *, state, action, reward, logprob, done):
