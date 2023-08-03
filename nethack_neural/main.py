@@ -1,4 +1,5 @@
 import os
+import datetime
 
 from nethack_neural.agents.ppo_agent import GlyphBlstatsPPOAgent, GlyphPPOAgent
 from nethack_neural.runners.ppo_runner import PPORunner
@@ -79,8 +80,12 @@ def fully_specialized(ctx, environment, observation_keys, critic_lr, actor_lr, e
     env, keys = resolve_environment(environment, observation_keys)
     if save_model:
         save_model_path = click.prompt('Enter model save directory')
+        if not os.path.isdir(save_model_path):
+            os.mkdir(save_model_path)
     if load_model:
         load_model_path = click.prompt('Enter model load directory')
+        if not os.path.isdir(load_model_path):
+            raise click.BadParameter('Invalid model load directory')
     if training_device == 'auto':
         training_device = 'cuda' if torch.cuda.is_available() else 'cpu'
     env_specs = EnvSpecs()
@@ -137,7 +142,8 @@ def fully_specialized(ctx, environment, observation_keys, critic_lr, actor_lr, e
         evaluation_steps=evaluation_length,
     )
     if save_model:
-        agent.save(save_model_path)
+        path = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        agent.save(save_model_path + '/' + path)
 
 @cli.command()
 @click.option('--environment', type=click.Choice(env_cli_options), default=env_cli_options[0], prompt='Choose an environment')
