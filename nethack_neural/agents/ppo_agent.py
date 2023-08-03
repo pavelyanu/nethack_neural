@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torch.distributions import Categorical
-from torchrl.data import ReplayBuffer
 
 from nethack_neural.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, GlyphBlstatHead, CartPoleHead, ActivationWrapper
 from nethack_neural.agents.abstract_agent import AbstractAgent

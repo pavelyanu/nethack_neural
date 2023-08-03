@@ -13,9 +13,10 @@ import minihack
 import gym
 import torch
 
-@click.group()
-def cli():
-    pass
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    return ctx.invoke(fully_specialized)
 
 
 env_cli_map = {
@@ -157,12 +158,6 @@ def fully_specialized(ctx, environment, observation_keys, critic_lr, actor_lr, e
 @click.pass_context
 def specialized(ctx, environment, observation_keys, num_envs, total_steps, worker_steps, evaluation_period, evaluation_length, visualization):
     return ctx.invoke(fully_specialized, environment=environment, observation_keys=observation_keys, num_envs=num_envs, total_steps=total_steps, worker_steps=worker_steps, evaluation_period=evaluation_period, evaluation_length=evaluation_length, visualization=visualization)
-
-
-@cli.command()
-@click.pass_context
-def default(ctx):
-    return ctx.invoke(fully_specialized)
 
 if __name__ == '__main__':
     cli()

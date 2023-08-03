@@ -6,3 +6,4 @@ models/
 *.log
 *.prof
 *.pkl
+*.egg-info/

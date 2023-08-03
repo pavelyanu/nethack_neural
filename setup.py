@@ -9,11 +9,13 @@ setup(
         'click',
         'gym',
         'minihack',
+        'nle',
         'numpy',
         'torch',
         'tqdm',
         'pandas',
         'matplotlib',
+        'plotext'
     ],
     entry_points={
         'console_scripts': [
