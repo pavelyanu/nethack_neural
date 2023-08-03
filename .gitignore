@@ -7,3 +7,5 @@ models/
 *.prof
 *.pkl
 *.egg-info/
+*venv/
+dist/
