@@ -52,11 +52,11 @@ You can also run specific commands, such as `nethack_neural specialized` or `net
 
 ### Differences between Commands
 
-The nethack_neural command (default run) will run the program using the default parameters specified in the script.
+The `nethack_neural command` (default run) will run the program using the default parameters specified in the script.
 
-The nethack_neural fully_specialized command, on the other hand, will prompt the user to input all parameters manually, providing maximum customization for each run.
+The `nethack_neural fully_specialized` command, on the other hand, will prompt the user to input all parameters manually, providing maximum customization for each run.
 
-The nethack_neural specialized command provides a middle ground. It is a simplified version of the fully_specialized command, offering fewer customization options. These options focus on the environment, number of environments, total steps, worker steps, evaluation period, evaluation length, and visualization type.
+The `nethack_neural specialized` command provides a middle ground. It is a simplified version of the fully_specialized command, offering fewer customization options. These options focus on the environment, number of environments, total steps, worker steps, evaluation period, evaluation length, and visualization type.
 
 ### Parameters
 
