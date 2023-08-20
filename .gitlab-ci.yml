@@ -1,3 +1,5 @@
+image: pavelyanu/yanushonak:latest
+
 stages:
   - test
   - build
@@ -5,7 +7,6 @@ stages:
 
 run tests:
   stage: test
-  image: pavelyanu/yanushonak:latest
   script:
     - python -m unittest discover tests
 
