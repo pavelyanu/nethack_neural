@@ -23,6 +23,6 @@ deploy:
   stage: deploy
   script:
     - pip install twine
-    - twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+    - twine upload --repository-url https://upload.pypi.org/legacy/ --username $PYPI_USERNAME --password $PYPI_PASSWORD dist/*
   only:
     - master
