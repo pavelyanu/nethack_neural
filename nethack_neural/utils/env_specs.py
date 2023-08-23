@@ -1,4 +1,7 @@
 from gym.spaces.dict import Dict
+import gym
+import nle
+import minihack
 class EnvSpecs:
     """A class that holds specifications of an environment.
 
@@ -33,3 +36,13 @@ class EnvSpecs:
         self.action_shape = env.action_space.shape
         self.num_actions = env.action_space.n
         self.num_envs = num_envs
+
+    def init_with_env_name(self, env_name, num_envs=1, **kwargs):
+        """Initialize the environment specifications using a gym environment name.
+
+        Args:
+            env_name (str): The name of the gym environment to initialize from.
+            num_envs (int): The number of environments in use. Default is 1.
+        """
+        env = gym.make(env_name, **kwargs)
+        self.init_with_gym_env(env, num_envs)
