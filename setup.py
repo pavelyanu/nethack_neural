@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='nethack_neural',
-    version='0.5',
+    version='0.6',
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
@@ -17,7 +17,6 @@ setup(
         'matplotlib==3.7.2',
         'plotext==5.2.8',
         'simple-term-menu==1.6.1',
-        'PyYAML==5.4.1'
     ],
     entry_points={
         'console_scripts': [

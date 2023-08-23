@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Exit on any error
 set -e
 
 echo "Updating system..."
@@ -19,10 +18,8 @@ echo "Installing CMake and associated keys..."
 sudo apt-get --allow-unauthenticated install -y cmake kitware-archive-keyring
 
 echo "Making sure /usr/bin/cmake is the default..."
-# Using `command -v` to get the path of the command
 CMAKE_PATH=$(command -v cmake)
 
-# If the default path isn't /usr/bin/cmake, then remove it
 if [ "$CMAKE_PATH" != "/usr/bin/cmake" ]; then
     sudo rm "$CMAKE_PATH"
 fi
