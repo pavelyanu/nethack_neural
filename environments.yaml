@@ -1,0 +1,92 @@
+room:
+ - MiniHack-Room-5x5-v0 (basic learning)
+ - MiniHack-Room-15x15-v0 (basic learning)
+ - MiniHack-Room-Random-5x5-v0 (basic learning)
+ - MiniHack-Room-Random-15x15-v0 (basic learning)
+ - MiniHack-Room-Dark-5x5-v0 (basic learning)
+ - MiniHack-Room-Dark-15x15-v0 (basic learning)
+ - MiniHack-Room-Monster-5x5-v0 (basic learning)
+ - MiniHack-Room-Monster-15x15-v0 (basic learning)
+ - MiniHack-Room-Trap-5x5-v0 (basic learning)
+ - MiniHack-Room-Trap-15x15-v0 (basic learning)
+ - MiniHack-Room-Ultimate-5x5-v0 (basic learning)
+
+corridor:
+ - MiniHack-Corridor-R2-v0 (exploration)
+ - MiniHack-Corridor-R3-v0 (exploration)
+ - MiniHack-Corridor-R5-v0 (exploration)
+
+keyroom:
+ - MiniHack-KeyRoom-Fixed-S5-v0 (exploration)
+ - MiniHack-KeyRoom-S5-v0 (exploration)
+ - MiniHack-KeyRoom-Dark-S5-v0 (exploration)
+ - MiniHack-KeyRoom-S15-v0 (exploration)
+ - MiniHack-KeyRoom-Dark-S15-v0 (exploration)
+
+mazewalk:
+ - MiniHack-MazeWalk-9x9-v0 (exploration & memory)
+ - MiniHack-MazeWalk-Mapped-9x9-v0 (exploration & memory)
+ - MiniHack-MazeWalk-15x15-v0 (exploration & memory)
+ - MiniHack-MazeWalk-Mapped-15x15-v0 (exploration & memory)
+ - MiniHack-MazeWalk-45x19-v0 (exploration & memory)
+ - MiniHack-MazeWalk-Mapped-45x19-v0 (exploration & memory)
+
+river:
+ - MiniHack-River-Narrow-v0 (planning)
+ - MiniHack-River-v0 (planning)
+ - MiniHack-River-Monster-v0 (planning)
+ - MiniHack-River-Lava-v0 (planning)
+ - MiniHack-River-MonsterLava-v0 (planning)
+
+hide & seek:
+ - MiniHack-HideNSeek-v0 (planning)
+ - MiniHack-HideNSeek-Mapped-v0 (planning)
+ - MiniHack-HideNSeek-Lava-v0 (planning)
+ - MiniHack-HideNSeek-Big-v0 (planning)
+
+corridor battle:
+ - MiniHack-CorridorBattle-v0 (planning & memory)
+ - MiniHack-CorridorBattle-Dark-v0 (planning & memory)
+
+memento:
+ - MiniHack-Memento-Short-F2-v0 (memory)
+ - MiniHack-Memento-F2-v0 (memory)
+ - MiniHack-Memento-F4-v0 (memory)
+
+maze explore:
+ - MiniHack-MazeExplore-Easy-v0 (deep exploration)
+ - MiniHack-MazeExplore-Hard-v0 (deep exploration)
+ - MiniHack-MazeExplore-Easy-Mapped-v0 (deep exploration)
+ - MiniHack-MazeExplore-Hard-Mapped-v0 (deep exploration)
+
+simple tasks:
+ - MiniHack-Eat-v0 (confirmation or pickup + inventory)
+ - MiniHack-Eat-Fixed-v0 (confirmation or pickup + inventory)
+ - MiniHack-Eat-Distract-v0 (confirmation or pickup + inventory)
+ - MiniHack-Pray-v0 (confirmation)
+ - MiniHack-Pray-Fixed-v0 (confirmation)
+ - MiniHack-Pray-Distract-v0 (confirmation)
+ - MiniHack-Wear-v0 (pickup + inventory)
+ - MiniHack-Wear-Fixed-v0 (pickup + inventory)
+ - MiniHack-Wear-Distract-v0 (pickup + inventory)
+ - MiniHack-LockedDoor-v0 (direction)
+ - MiniHack-LockedDoor-Random-v0 (direction)
+
+lava crossing:
+ - MiniHack-LavaCross-Levitate-Ring-Inv-v0 (inventory)
+ - MiniHack-LavaCross-Levitate-Potion-Inv-v0 (inventory)
+ - MiniHack-LavaCross-Levitate-Ring-Pickup-v0 (pickup + inventory)
+ - MiniHack-LavaCross-Levitate-Potion-PickUp-v0 (pickup + inventory)
+ - MiniHack-LavaCross-Levitate-v0 (pickup + inventory)
+ - MiniHack-LavaCross-v0 (pickup + inventory)
+
+wand of death:
+ - MiniHack-WoD-Easy-v0 (inventory + direction)
+ - MiniHack-WoD-Medium-v0 (pickup + inventory + direction)
+ - MiniHack-WoD-Hard-v0 (pickup + inventory + direction)
+ - MiniHack-WoD-Pro-v0 (navigation + pickup + inventory + direction)
+
+quest:
+ - MiniHack-Quest-Easy-v0 (inventory)
+ - MiniHack-Quest-Medium-v0 (navigation + inventory)
+ - MiniHack-Quest-Hard-v0 (navigation + pickup + inventory + direction)

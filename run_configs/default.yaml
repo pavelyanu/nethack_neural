@@ -1,0 +1,24 @@
+actor_lr: 0.0003
+batch_size: 64
+critic_lr: 0.0003
+env_name: MiniHack-Room-5x5-v0
+epochs: 10
+eps_clip: 0.2
+evaluation_length: 5
+evaluation_period: 500
+gae_lambda: 0.95
+gamma: 0.99
+hidden_layer_size: 64
+load_model: null
+loggers: []
+num_envs: 4
+observation_keys:
+- glyphs
+- blstats
+save_model: null
+total_steps: 100000
+training_device: auto
+storage_device: auto
+visualization: full
+worker_steps: 1000
+buffer_size: 2000

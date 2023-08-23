@@ -9,3 +9,5 @@ models/
 *.egg-info/
 *venv/
 dist/
+/run_configs/*
+!/run_configs/default.yaml
