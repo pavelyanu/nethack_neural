@@ -15,6 +15,8 @@ class RolloutBuffer(AbstractBuffer):
         transition_factory (TransitionFactory): An object of class TransitionFactory that provides functionality to create new transitions.
         buffer_size (int): Maximum number of transitions that can be stored in the buffer.
         num_envs (int, optional): Number of parallel environments. Default is 1.
+        gamma (float, optional): Discount factor. Default is 0.99.
+        gae_lambda (float, optional): GAE hyperparameter. Default is 0.95.
         device (torch.device, optional): Device where the tensors will be stored. Default is CPU.
         dtype (torch.dtype, optional): Data type of the stored tensors. Default is float32.
 
@@ -22,6 +24,8 @@ class RolloutBuffer(AbstractBuffer):
         transition_factory (TransitionFactory): An object of class TransitionFactory that provides functionality to create new transitions.
         buffer_size (int): Maximum number of transitions that can be stored in the buffer.
         num_envs (int): Number of parallel environments.
+        gamma (float): Discount factor.
+        gae_lambda (float): GAE hyperparameter.
         device (torch.device): Device where the tensors will be stored.
         dtype (torch.dtype): Data type of the stored tensors.
         pointer (int): Pointer to the next empty spot in the buffer.
@@ -33,10 +37,14 @@ class RolloutBuffer(AbstractBuffer):
         transition_factory: TransitionFactory,
         buffer_size: int,
         num_envs=1,
+        gamma=0.99,
+        gae_lambda=0.95,
         device=torch.device('cpu'),
         dtype=torch.float32
     ):
         super().__init__(buffer_size, num_envs)
+        self.gamma = gamma
+        self.gae_lambda = gae_lambda
         self.transition_factory = transition_factory
         self.device = device
         self.dtype = dtype
@@ -124,7 +132,7 @@ class RolloutBuffer(AbstractBuffer):
         Reshapes the tensors, computes the Generalized Advantage Estimation (GAE), and concatenates the fields.
         """
         self.reshape()
-        self.compute_GAE()
+        self.compute_GAE(gamma=self.gamma, lambda_=self.gae_lambda)
         self.concat_feilds()
 
     def compute_GAE(self, gamma=0.99, lambda_=0.95):
