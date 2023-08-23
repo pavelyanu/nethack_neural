@@ -54,12 +54,6 @@ available_vis = [
     'full'
 ]
 
-vis_to_runners = {
-    'none': PPORunner,
-    'bar': PPORunner,
-    'full': PPOVisualRunner,
-}
-
 vis_expansions = {
     'none': 'No visualization',
     'bar': 'Only tqdm progress bar with mean of 100 latest rewards',
