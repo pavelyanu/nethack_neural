@@ -15,11 +15,13 @@ setup(
         'tqdm==4.65.0',
         'pandas==2.0.3',
         'matplotlib==3.7.2',
-        'plotext==5.2.8'
+        'plotext==5.2.8',
+        'simple-term-menu==1.6.1',
+        'PyYAML==5.4.1'
     ],
     entry_points={
         'console_scripts': [
-            'nethack_neural=nethack_neural.main:cli',
+            'nethack_neural=nethack_neural:main',
         ],
     }
 )

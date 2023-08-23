@@ -730,7 +730,10 @@ class Run:
         self.save()
         self.finalize_loggers()
 
-if __name__ == "__main__":
+def main():
     config = choose_config()
     run = Run(config)
     run.run()
+
+if __name__ == "__main__":
+    main()
