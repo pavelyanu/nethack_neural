@@ -114,6 +114,25 @@ class ActivationWrapper(nn.Module):
         x = self.activation(x)
         return x
 
+class KeyWrapper(nn.Module):
+    """A model that takes a dictionary with one key and extracts the value.
+
+    Attributes:
+        key (str): The key to extract from the dictionary.
+        model (nn.Module): The model to apply to the extracted value.
+        **kwargs: The keyword arguments to pass to the model.
+    """
+    def __init__(self, key, module):
+        super().__init__()
+        self.key = key
+        self.module = module
+
+    def forward(self, x):
+        x = x[self.key]
+        x = self.module(x)
+        return x
+
+
 class GlyphBlstatHead(nn.Module):
     """A model that takes both a glyph map and 'blstats' as input.
 
