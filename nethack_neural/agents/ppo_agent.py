@@ -1,11 +1,13 @@
 from abc import abstractmethod
+import os
+import zipfile
 
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torch.distributions import Categorical
 
-from nethack_neural.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, GlyphBlstatHead, CartPoleHead, ActivationWrapper
+from nethack_neural.networks.input_heads import GlyphHeadFlat, GlyphHeadConv, GlyphBlstatHead, CartPoleHead, ActivationWrapper, BlstatsHead, KeyWrapper
 from nethack_neural.agents.abstract_agent import AbstractAgent
 from nethack_neural.utils.env_specs import EnvSpecs
 from nethack_neural.buffers.rollout_buffer import RolloutBuffer
@@ -38,6 +40,7 @@ class AbstractPPOAgent(AbstractAgent):
                 actor_lr=0.0001,
                 critic_lr=0.001,
                 gamma=0.99,
+                gae_lambda=0.95,
                 epochs=10,
                 eps_clip=0.2,
                 batch_size=64,
@@ -50,6 +53,7 @@ class AbstractPPOAgent(AbstractAgent):
         self._actor_lr = actor_lr
         self._critic_lr = critic_lr
         self._gamma = gamma
+        self._gae_lambda = gae_lambda
         self._epochs = epochs
         self._eps_clip = eps_clip
         self._batch_size = batch_size
@@ -71,6 +75,8 @@ class AbstractPPOAgent(AbstractAgent):
             self._transition_factory,
             buffer_size=self._buffer_size,
             num_envs=self._num_envs,
+            gamma=self._gamma,
+            gae_lambda=self._gae_lambda,
             device=self._storage_device)
         self.counter = 0
 
@@ -181,7 +187,7 @@ class AbstractPPOAgent(AbstractAgent):
                 action_logprobs = distribution.log_prob(torch.squeeze(actions_batch, -1)).unsqueeze(-1)
                 state_values = self._critic(states_batch)
 
-                ratios = torch.exp(action_logprobs - logprobs_batch.detach())
+                ratios = torch.exp(action_logprobs - logprobs_batch)
 
                 surrogate1 = ratios * advantages_batch
                 surrogate2 = torch.clamp(ratios, 1 - self._eps_clip, 1 + self._eps_clip) * advantages_batch
@@ -201,26 +207,42 @@ class AbstractPPOAgent(AbstractAgent):
         self._buffer.clear()
 
 
-    def load(self, path):
-        """Loads the model parameters from the specified path.
+    def save(self, path, zip=False):
+        if zip:
+            actor_tmp_path = os.path.join("/tmp", "temp_actor.pth")
+            critic_tmp_path = os.path.join("/tmp", "temp_critic.pth")
+            
+            torch.save(self._actor.state_dict(), actor_tmp_path)
+            torch.save(self._critic.state_dict(), critic_tmp_path)
+            
+            with zipfile.ZipFile(path, 'w') as zipf:
+                zipf.write(actor_tmp_path, os.path.basename(actor_tmp_path))
+                zipf.write(critic_tmp_path, os.path.basename(critic_tmp_path))
+            
+            os.remove(actor_tmp_path)
+            os.remove(critic_tmp_path)
+        else:
+            torch.save(self._actor.state_dict(), path + "_actor.pth")
+            torch.save(self._critic.state_dict(), path + "_critic.pth")
 
-        Args:
-            path (str): The path from which to load the model parameters.
-        """ 
-        paths = [path + 'actor.pkl', path + 'critic.pkl']
-        for model, path in zip([self._actor, self._critic], paths):
-            model.load_state_dict(torch.load(path))
-        self._actor_old.load_state_dict(self._actor.state_dict())
-
-    def save(self, path):
-        """Saves the model parameters to the specified path.
-
-        Args:
-            path (str): The path to which to save the model parameters.
-        """
-        paths = [path + 'actor.pkl', path + 'critic.pkl']
-        for model, path in zip([self._actor, self._critic], paths):
-            torch.save(model.state_dict(), path)
+    def load(self, path, zip=False):
+        if zip:
+            actor_tmp_path = os.path.join("/tmp", "temp_actor.pth")
+            critic_tmp_path = os.path.join("/tmp", "temp_critic.pth")
+            
+            with zipfile.ZipFile(path, 'r') as zipf:
+                zipf.extractall("/tmp")
+            
+            self._actor.load_state_dict(torch.load(actor_tmp_path))
+            self._critic.load_state_dict(torch.load(critic_tmp_path))
+            self._actor_old.load_state_dict(self._actor.state_dict())
+            
+            os.remove(actor_tmp_path)
+            os.remove(critic_tmp_path)
+        else:
+            self._actor.load_state_dict(torch.load(path + "_actor.pth"))
+            self._critic.load_state_dict(torch.load(path + "_critic.pth"))
+            self._actor_old.load_state_dict(self._actor.state_dict())
 
 
 class GlyphPPOAgent(AbstractPPOAgent):
@@ -233,6 +255,7 @@ class GlyphPPOAgent(AbstractPPOAgent):
         actor_lr (float): The learning rate for the actor network.
         critic_lr (float): The learning rate for the critic network.
         gamma (float): The discount factor.
+        gae_lambda (float): The lambda parameter for generalized advantage estimation.
         epochs (int): The number of epochs to run during each update.
         eps_clip (float): The clip range for the policy update.
         batch_size (int): The size of the mini-batches used for updates.
@@ -248,6 +271,7 @@ class GlyphPPOAgent(AbstractPPOAgent):
             actor_lr=0.0001,
             critic_lr=0.001,
             gamma=0.99,
+            gae_lambda=0.95,
             epochs=10,
             eps_clip=0.2,
             batch_size=64,
@@ -256,7 +280,21 @@ class GlyphPPOAgent(AbstractPPOAgent):
             storage_device='cpu',
             training_device=None,
             tensor_type=torch.float32):
-        super().__init__(env_specs, actor_lr, critic_lr, gamma, epochs, eps_clip, batch_size, buffer_size, hidden_layer, storage_device, training_device, tensor_type)
+        super().__init__(
+            env_specs=env_specs,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+            epochs=epochs,
+            eps_clip=eps_clip,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+            hidden_layer=hidden_layer,
+            storage_device=storage_device,
+            training_device=training_device,
+            tensor_type=tensor_type,
+        )
         actor_net = GlyphHeadFlat(
             self._observation_space['glyphs'],
             self._num_actions,
@@ -273,16 +311,18 @@ class GlyphPPOAgent(AbstractPPOAgent):
             self._hidden_layer,
             device=self._training_device,)
         self._actor = ActivationWrapper(actor_net, nn.Softmax(dim=-1))
+        self._actor = KeyWrapper('glyphs', self._actor)
         self._actor_old = ActivationWrapper(actor_old_net, nn.Softmax(dim=-1))
-        self._critic = critic_net
+        self._actor_old = KeyWrapper('glyphs', self._actor_old)
+        self._critic = KeyWrapper('glyphs', critic_net)
         self._actor_old.load_state_dict(self._actor.state_dict())
         self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
         self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
 
     def preprocess(self, observation):
-        observation = torch.from_numpy(observation['glyphs']).to(dtype=self._tensor_type, device=self._training_device)
+        observation = {'glyphs': torch.from_numpy(observation['glyphs']).to(dtype=self._tensor_type, device=self._training_device)}
         if not self.hasbatchdim(observation):
-            observation = observation.unsqueeze(0)
+            observation['glyphs'] = observation['glyphs'].unsqueeze(0)
         return observation
     
     def hasbatchdim(self, state):
@@ -303,6 +343,7 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
         actor_lr (float): The learning rate for the actor network.
         critic_lr (float): The learning rate for the critic network.
         gamma (float): The discount factor.
+        gae_lambda (float): The lambda parameter for generalized advantage estimation.
         epochs (int): The number of epochs to run during each update.
         eps_clip (float): The clip range for the policy update.
         batch_size (int): The size of the mini-batches used for updates.
@@ -318,6 +359,7 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
             actor_lr=0.0001,
             critic_lr=0.001,
             gamma=0.99,
+            gae_lambda=0.95,
             epochs=10,
             eps_clip=0.2,
             batch_size=64,
@@ -326,7 +368,21 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
             storage_device='cpu',
             training_device=None,
             tensor_type=torch.float32):
-        super().__init__(env_specs, actor_lr, critic_lr, gamma, epochs, eps_clip, batch_size, buffer_size, hidden_layer, storage_device, training_device, tensor_type)
+        super().__init__(
+            env_specs=env_specs,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+            epochs=epochs,
+            eps_clip=eps_clip,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+            hidden_layer=hidden_layer,
+            storage_device=storage_device,
+            training_device=training_device,
+            tensor_type=tensor_type,
+        )
         self._actor = GlyphBlstatHead(
             self._observation_space['glyphs'],
             self._observation_space['blstats'],
@@ -362,17 +418,18 @@ class GlyphBlstatsPPOAgent(AbstractPPOAgent):
             return False
         else:
             return True
-    
-class CartPolePPOAgent(AbstractPPOAgent):
-    """PPO agent that uses a CartPoleHead network.
 
-    This agent is specifically designed for the CartPole environment.
+class BlstatPPOAgent(AbstractPPOAgent):
+    """PPO agent that uses a BlstatsHead network.
+    
+    This agent is specifically designed for environments where the states are represented as blstats.
 
     Args:
         env_specs (EnvSpecs): The specifications of the environment.
         actor_lr (float): The learning rate for the actor network.
         critic_lr (float): The learning rate for the critic network.
         gamma (float): The discount factor.
+        gae_lambda (float): The lambda parameter for generalized advantage estimation.
         epochs (int): The number of epochs to run during each update.
         eps_clip (float): The clip range for the policy update.
         batch_size (int): The size of the mini-batches used for updates.
@@ -388,6 +445,7 @@ class CartPolePPOAgent(AbstractPPOAgent):
             actor_lr=0.0001,
             critic_lr=0.001,
             gamma=0.99,
+            gae_lambda=0.95,
             epochs=10,
             eps_clip=0.2,
             batch_size=64,
@@ -396,7 +454,109 @@ class CartPolePPOAgent(AbstractPPOAgent):
             storage_device='cpu',
             training_device=None,
             tensor_type=torch.float32):
-        super().__init__(env_specs, actor_lr, critic_lr, gamma, epochs, eps_clip, batch_size, buffer_size, hidden_layer, storage_device, training_device, tensor_type)
+        super().__init__(
+            env_specs=env_specs,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+            epochs=epochs,
+            eps_clip=eps_clip,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+            hidden_layer=hidden_layer,
+            storage_device=storage_device,
+            training_device=training_device,
+            tensor_type=tensor_type,
+        )
+        actor_net = BlstatsHead(
+            self._observation_space['blstats'],
+            self._num_actions,
+            self._hidden_layer,
+            device=self._training_device)
+        old_actor_net = BlstatsHead(
+            self._observation_space['blstats'],
+            self._num_actions,
+            self._hidden_layer,
+            device=self._training_device)
+        critic_net = BlstatsHead(
+            self._observation_space['blstats'],
+            1,
+            self._hidden_layer, actor=False,
+            device=self._training_device)
+        self._actor = ActivationWrapper(actor_net, nn.Softmax(dim=-1))
+        self._actor = KeyWrapper(self._actor, 'blstats')
+        self._actor_old = ActivationWrapper(old_actor_net, nn.Softmax(dim=-1))
+        self._actor_old = KeyWrapper(self._actor_old, 'blstats')
+        self._critic = KeyWrapper(critic_net, 'blstats')
+        self._actor_old.load_state_dict(self._actor.state_dict())
+        self._actor_optimizer = torch.optim.Adam(self._actor.parameters(), lr=self._actor_lr)
+        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._critic_lr)
+
+    def preprocess(self, observation):
+        observation = {'blstats': torch.from_numpy(observation['blstats']).to(dtype=self._tensor_type, device=self._training_device)}
+        if not self.hasbatchdim(observation):
+            observation['blstats'] = observation['blstats'].unsqueeze(0)
+        return observation
+
+    def hasbatchdim(self, state):
+        state = state['blstats']
+        if state.shape == self._observation_space['blstats']:
+            return False
+        else:
+            return True
+
+    
+class CartPolePPOAgent(AbstractPPOAgent):
+    """PPO agent that uses a CartPoleHead network.
+
+    This agent is specifically designed for the CartPole environment.
+
+    Args:
+        env_specs (EnvSpecs): The specifications of the environment.
+        actor_lr (float): The learning rate for the actor network.
+        critic_lr (float): The learning rate for the critic network.
+        gamma (float): The discount factor.
+        gae_lambda (float): The lambda parameter for generalized advantage estimation.
+        epochs (int): The number of epochs to run during each update.
+        eps_clip (float): The clip range for the policy update.
+        batch_size (int): The size of the mini-batches used for updates.
+        buffer_size (int): The size of the buffer used for storing transitions.
+        hidden_layer (int): The size of the hidden layers in the actor and critic networks.
+        storage_device (str): The device to use for storing transitions ('cpu' or 'cuda').
+        training_device (str): The device to use for training ('cpu' or 'cuda').
+        tensor_type (torch.dtype): The type of the tensors used in computations.
+    """
+    def __init__(
+            self,
+            env_specs,
+            actor_lr=0.0001,
+            critic_lr=0.001,
+            gamma=0.99,
+            gae_lambda=0.95,
+            epochs=10,
+            eps_clip=0.2,
+            batch_size=64,
+            buffer_size=2000,
+            hidden_layer=64,
+            storage_device='cpu',
+            training_device=None,
+            tensor_type=torch.float32):
+        super().__init__(
+            env_specs=env_specs,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+            epochs=epochs,
+            eps_clip=eps_clip,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+            hidden_layer=hidden_layer,
+            storage_device=storage_device,
+            training_device=training_device,
+            tensor_type=tensor_type,
+        )
         actor_net = CartPoleHead(
             self._observation_space,
             self._num_actions,
