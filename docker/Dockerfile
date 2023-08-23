@@ -18,4 +18,5 @@ RUN pip install minihack
 RUN pip install pandas
 RUN pip install matplotlib
 RUN pip install plotext
+RUN pip install simple-term-menu
 RUN pip install click
