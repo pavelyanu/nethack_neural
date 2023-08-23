@@ -1,65 +1,99 @@
-import threading
 from nethack_neural.runners.abstract_runner import AbstractRunner
-from datetime import datetime
-import time
-from numpy import ndarray
-import numpy as np
 import pandas as pd
 import tqdm
 import plotext as plt
+import threading
+import time
+from datetime import datetime
+import numpy as np
+from numpy import ndarray
 
-class PPOVisualRunner(AbstractRunner):
-    """Visual Runner class for Proximal Policy Optimization (PPO) algorithms.
-
-    The PPOVisualRunner class extends the AbstractRunner base class. It is designed to handle the 
-    interaction between a PPO agent and the environment, manage the training and evaluation processes, 
-    provide logging capabilities, and visualize the progress in real-time.
-
-    Args:
-        env (gym.Env): The gym environment in which to run the experiments.
-        agent (AbstractPPOAgent): The PPO agent that will interact with the environment.
-        loggers (list): A list of loggers for logging experiment results.
-    """
-    def __init__(self, env, agent, loggers):
+class PPOFullRunner(AbstractRunner):
+    def __init__(self, env, agent, loggers, use_tqdm=False, use_visualization=False):
         super().__init__(env, agent, loggers)
-        self.running_data = pd.DataFrame(columns=['time', 'timestep', 'reward', 'length'])
-        self.evaluation_data = pd.DataFrame(columns=['time', 'timestep', 'reward', 'length'])
-        self.current_replay = []
-        self.pending_replay = []
+        self.use_tqdm = use_tqdm
+        self.use_visualization = use_visualization
+
+        # PPORunner attributes
         self.progress_bar = None
-        self.terminal_width = plt.terminal_width()
-        self.terminal_height = plt.terminal_height()
-        self.plot_width = self.terminal_width
-        self.plot_height = self.terminal_height - 27
-        if self.plot_height < 10:
-            throw("Terminal height too small for full visualization.")
-        self.running_data_buffer = None
-        self.replay_index = 0
-        self.last_frame_time = time.time()
-        self.last_visualization_time = time.time()
-        self.plot_refresh_rate = 0.5
-        self.replay_refresh_rate = 0.1
-        self.plot_string = ""
-        self.timesteps = 0
-        self.progress_bar_steps = 0
+        
+        # PPOVisualRunner attributes
+        if self.use_visualization:
+            self.running_data = pd.DataFrame(columns=['time', 'timestep', 'reward', 'length'])
+            self.evaluation_data = pd.DataFrame(columns=['time', 'timestep', 'reward', 'length'])
+            self.current_replay = []
+            self.pending_replay = []
+            self.terminal_width = plt.terminal_width()
+            self.terminal_height = plt.terminal_height()
+            self.plot_width = self.terminal_width
+            self.plot_height = self.terminal_height - 27
+            if self.plot_height < 10:
+                raise Exception("Terminal height too small for full visualization.")
+            self.running_data_buffer = None
+            self.replay_index = 0
+            self.last_frame_time = time.time()
+            self.last_visualization_time = time.time()
+            self.plot_refresh_rate = 0.5
+            self.replay_refresh_rate = 0.1
+            self.plot_string = ""
+            self.timesteps = 0
+            self.progress_bar_steps = 0
 
     def run(self, num_envs, eval_env, total_steps=10000, worker_steps=2000, evaluation_period=2000, evaluation_steps=10, render=False):
-        """Runs the PPO training and evaluation loop while visualizing the progress in real-time.
+        if self.use_visualization:
+            self._run_visual(num_envs, eval_env, total_steps, worker_steps, evaluation_period, evaluation_steps, render)
+        else:
+            self._run_non_visual(num_envs, eval_env, total_steps, worker_steps, evaluation_period, evaluation_steps, render)
 
-        This method controls the interaction between the agent and the environment, collects the
-        experiences, updates the agent's policy, and periodically evaluates the agent's performance.
-        It also updates the visualization of the training progress.
+    def _run_non_visual(self, num_envs, eval_env, total_steps=10000, worker_steps=2000, evaluation_period=2000, evaluation_steps=10, render=False):
+        env_rewards = [0 for _ in range(num_envs)]
+        reward_log = []
+        if self.use_tqdm:
+            self.progress_bar = tqdm.tqdm(total=total_steps)
+            self.progress_bar.update(0)
 
-        Args:
-            num_envs (int): Number of environments to run in parallel.
-            eval_env (gym.Env): The gym environment in which to evaluate the agent's performance.
-            total_steps (int, optional): Total number of steps to run the training. Defaults to 10000.
-            worker_steps (int, optional): Number of steps after which the policy will be updated. Defaults to 2000.
-            evaluation_period (int, optional): Number of steps after which the agent's performance will be evaluated. Defaults to 2000.
-            evaluation_steps (int, optional): Number of episodes to run for each evaluation. Defaults to 10.
-            render (bool, optional): Whether to render the environment during evaluation. Defaults to False.
-            vis_update_period (int, optional): Number of steps after which the visualization will be updated. Defaults to 100.
-        """
+        timesteps = 0
+        train_counter = 0
+        eval_counter = 0
+        states = self.env.reset()
+        while timesteps < total_steps:
+            actions, logprobs = self.agent.act(states)
+            next_states, rewards, done, _ = self.env.step(actions)
+            self.agent.save_transition(
+                state=states,
+                action=actions,
+                reward=rewards,
+                logprob=logprobs,
+                done=done
+            )
+            states = next_states
+            timesteps += num_envs
+            train_counter += num_envs
+            eval_counter += num_envs
+            if self.use_tqdm:
+                self.progress_bar.update(num_envs)
+
+            if self.use_tqdm:
+                for i in range(num_envs):
+                    env_rewards[i] += rewards[i]
+                    if done[i]:
+                        reward_log.append(env_rewards[i])
+                        env_rewards[i] = 0
+                        if len(reward_log) > 100:
+                            reward_log.pop(0)
+                        self.progress_bar.set_postfix_str(f"Mean reward: {sum(reward_log) / len(reward_log)}")
+
+            if train_counter >= worker_steps:
+                self.agent.last_state(states)
+                self.agent.train()
+                train_counter = 0
+
+            if eval_counter >= evaluation_period:
+                self.evaluate(timestep=timesteps, render=render, env=eval_env, num_episodes=evaluation_steps)
+                self.log_message(f"Total timesteps: {timesteps}")
+                eval_counter = 0
+
+    def _run_visual(self, num_envs, eval_env, total_steps=10000, worker_steps=2000, evaluation_period=2000, evaluation_steps=10, render=False):
         self.timesteps = 0
         train_counter = 0
         eval_counter = 0
@@ -112,22 +146,14 @@ class PPOVisualRunner(AbstractRunner):
                 eval_counter = 0
 
             self.visualize()
-                
 
     def evaluate(self, timestep, num_episodes=10, render=False, agent=None, env=None):
-        """Evaluates the agent's performance and logs the results.
+        if self.use_visualization:
+            self._evaluate_visual(timestep, num_episodes, render, agent, env)
+        else:
+            super().evaluate(timestep, num_episodes, render, agent, env)
 
-        This method runs a number of evaluation episodes using the agent's current policy and
-        logs the average reward and length of the episodes. It also records the replay of the last 
-        evaluation episode.
-
-        Args:
-            timestep (int): The current timestep.
-            num_episodes (int, optional): Number of episodes to run for each evaluation. Defaults to 10.
-            render (bool, optional): Whether to render the environment during evaluation. Defaults to False.
-            agent (AbstractPPOAgent, optional): The PPO agent that will interact with the environment. If None, the runner's agent will be used.
-            env (gym.Env, optional): The gym environment in which to evaluate the agent's performance. If None, the runner's environment will be used.
-        """
+    def _evaluate_visual(self, timestep, num_episodes=10, render=False, agent=None, env=None):
         if agent is None:
             agent = self.agent
         if env is None:
@@ -180,11 +206,6 @@ class PPOVisualRunner(AbstractRunner):
         self.evaluation_data = pd.concat([self.evaluation_data, pd.DataFrame(data, index=[0])], ignore_index=True)
 
     def visualize(self):
-        """Visualizes the training progress.
-
-        This method updates the visualization of the training progress, including a plot of the running
-        and evaluation rewards and a replay of the last evaluation episode.
-        """
         current_time = time.time()
         if current_time - self.last_visualization_time > self.plot_refresh_rate or \
            current_time - self.last_frame_time > self.replay_refresh_rate:
@@ -205,23 +226,14 @@ class PPOVisualRunner(AbstractRunner):
             self.progress_bar_steps = self.timesteps
 
     def update_replay(self):
-        """Updates the replay of the last evaluation episode.
-
-        This method advances the index of the replay to show the next frame in the replay.
-        """
         self.replay_index += 1
         if self.replay_index >= len(self.current_replay):
             self.replay_index = 0
             if self.pending_replay:
                 self.current_replay = self.pending_replay
                 self.pending_replay = []
-    
-    def update_plot(self):
-        """Updates the plot of the running and evaluation rewards.
 
-        This method updates the plot of the running and evaluation rewards using the plotext library.
-        """
-        # plt.clt()
+    def update_plot(self):
         plt.clf()
         plt.clc()
         plt.theme("pro")
@@ -235,4 +247,4 @@ class PPOVisualRunner(AbstractRunner):
         plt.ylabel("Reward")
         if len(self.running_data) > 0 or len(self.evaluation_data) > 0:
             self.plot_string = plt.build()
-        
+
