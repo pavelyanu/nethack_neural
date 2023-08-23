@@ -13,5 +13,9 @@ class AbstractLogger(ABC):
     def log_stats(self, *, timestep, time: datetime, reward, length):
         pass
 
+    @abstractmethod
+    def finalize(self):
+        pass
+
     def format_time(self, time: datetime):
         return time.strftime('%Y-%m-%d %H:%M:%S')

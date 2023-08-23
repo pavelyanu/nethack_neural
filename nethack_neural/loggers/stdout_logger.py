@@ -12,3 +12,6 @@ class StdoutLogger(AbstractLogger):
     def log_stats(self, *, timestep, time: datetime, reward, length):
         time = self.format_time(time)
         print(f"{timestep},{time},{reward},{length}")
+
+    def finalize(self):
+        pass

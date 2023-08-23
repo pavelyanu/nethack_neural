@@ -11,15 +11,16 @@ class FileLogger(AbstractLogger):
         message_path (str): The path to the file to log messages to.
         stats_path (str): The path to the file to log stats to.
     """
-    def __init__(self, message_path, stats_path, name="file_logger"):
+    def __init__(self, message_path, stats_path, name="file_logger", save_plot=False, show_plot=False):
         super().__init__(name)
         self.message_path = message_path
         self.stats_path = stats_path
+        self.save_plot = save_plot
+        self.show_plot = show_plot
         if os.path.exists(self.message_path):
             os.remove(self.message_path)
         if os.path.exists(self.stats_path):
             os.remove(self.stats_path)
-
 
     def log_message(self, time: datetime, msg):
         time = self.format_time(time)
@@ -49,5 +50,8 @@ class FileLogger(AbstractLogger):
         plt.show()
         plt.close(fig)
             
-
-        
+    def finalize(self):
+        if self.save_plot:
+            self.save_matplotlib_plot()
+        if self.show_plot:
+            self.show_matplotliib_plot()
