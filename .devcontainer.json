@@ -1,5 +1,5 @@
 {
-    "image": "docker.io/pavelyanu/yanushonak",
+    "image": "docker.io/pavelyanu/nethack_neural:dev",
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces,type=bind",
     "workspaceFolder": "/workspaces",
     "containerEnv": {

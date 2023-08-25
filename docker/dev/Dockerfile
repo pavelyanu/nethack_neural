@@ -5,15 +5,7 @@ RUN apt-get update && \
     build-essential autoconf libtool pkg-config \
     python3-dev python3-pip python3-numpy git flex bison libbz2-dev
 
-# Install nle using pip
-RUN pip install nle torchrl
-
-# Set the working directory
-WORKDIR /data
-
-# RUN git clone https://github.com/dungeonsdatasubmission/nld-aa-taster.git
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip
+RUN pip install nle
 RUN pip install minihack
 RUN pip install pandas
 RUN pip install matplotlib
