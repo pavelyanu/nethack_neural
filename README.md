@@ -1,10 +1,10 @@
 # NetHack-Neural
 
-## Problem Statement
+# Problem Statement
 
 This project aims to create a Proximal Policy Optimization (PPO) agent that can solve various environments based on the game NetHack. The program is developed using Python 3 and relies on popular libraries like PyTorch, Gym, Click, and MiniHack. The development environment consists of VS Code for script editing and debugging. The program is compatible with Linux.
 
-## Detailed Specification
+# Detailed Specification
 
 ### Analysis of Existing Programs
 There are several reinforcement learning agents available that can handle gym-like environments. However, the PPO_NetHack agent aims to specialize in the NetHack-based environments, providing a robust framework for training, evaluating, and visualizing the agent's progress in a variety of NetHack scenarios.
@@ -32,16 +32,17 @@ The agent is developed using Python 3, with the use of libraries such as PyTorch
 
 All the source code will be documented, and a user guide will be provided to help users set up and use the PPO_NetHack agent.
 
-## Installation Manual
+# Installation Manual
 
+I'm still figuring out a portable way to install the program. For now, you can clone the repository and run `python main.py` in the terminal to start the program.
 
-## User's Guide
+# User's Guide
 
-### Overview
+## Overview
 
 NetHack-Neural is a Python-based tool designed to train and evaluate Proximal Policy Optimization (PPO) agents in environments based on the game NetHack. Utilizing libraries like PyTorch, Gym, Click, and MiniHack, the tool provides a robust framework for conducting experiments in Reinforcement Learning (RL).
 
-### Features
+## Features
 
 - **Versatile Environments**: Supports multiple NetHack-based environments.
 - **Modular Design**: Segregates agent, environment, logging, and CLI into separate modules.
@@ -49,7 +50,7 @@ NetHack-Neural is a Python-based tool designed to train and evaluate Proximal Po
 - **Visualization**: Real-time training progress and performance visualization.
 - **Customization**: CLI for easy configuration of training, logging, and environment settings.
 
-### Basic Usage
+## Basic Usage
 
 Run `python main.py` in the terminal to start the program. You will be prompted to configure various settings, including:
 
@@ -61,11 +62,11 @@ Run `python main.py` in the terminal to start the program. You will be prompted 
 - Training and storage devices
 - Visualization type
 
-### Configuration Files
+## Configuration Files
 
 NetHack-Neural uses YAML-based configuration files stored in the `run_configs` directory. Predefined configurations can be used, or custom ones can be saved for later use.
 
-#### Example Configuration
+### Example Configuration
 
 ```yaml
 actor_lr: 0.0003
@@ -92,11 +93,11 @@ visualization: full
 worker_steps: 1000
 ```
 
-### Command-line Interface (CLI)
+## Command-line Interface (CLI)
 
 The CLI provided by Click allows for easy navigation and configuration. Follow the prompts to set up your experiment.
 
-### Logging
+## Logging
 
 You can choose between terminal-based (`stdout`) and file-based logging. File-based logging can also generate plots to visualize the agent's performance over time.
 
