@@ -95,7 +95,7 @@ worker_steps: 1000
 
 ## Command-line Interface (CLI)
 
-The CLI provided by Click allows for easy navigation and configuration. Follow the prompts to set up your experiment.
+The CLI provided by Click and simple-term-menu allows for easy navigation and configuration. Follow the prompts to set up your experiment.
 
 ## Logging
 
@@ -135,10 +135,6 @@ While the tool comes with predefined PPO agents, you can integrate custom agents
 - `none`: No visualization.
 - `bar`: Displays a tqdm progress bar.
 - `full`: Displays tqdm progress bar, rewards plot, and last evaluation episode in the terminal.
-
----
-
-For more details, consult the developer documentation and codebase. NetHack-Neural is an open-source project, and contributions are welcome.
 
 ## Developer Documentation
 
