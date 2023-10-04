@@ -36,6 +36,10 @@ All the source code will be documented, and a user guide will be provided to hel
 
 I'm still figuring out a portable way to install the program. For now, you can clone the repository and run `python main.py` in the terminal to start the program.
 
+## Dependencies
+
+In addition to Python 3.x and libraries listed in requirements.txt, the program requires the following due to Nethack Learning Environment: [ NLE Installation ]( https://github.com/facebookresearch/nle#installation )
+
 # User's Guide
 
 ## Overview
