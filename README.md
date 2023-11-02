@@ -143,3 +143,10 @@ While the tool comes with predefined PPO agents, you can integrate custom agents
 ## Developer Documentation
 
 (To be added)
+
+## References
+
+- [PyTorch](https://pytorch.org/)
+- [Gym](https://gym.openai.com/)
+- [NLE](https://arxiv.org/abs/2006.13760)
+- [PPO](https://arxiv.org/abs/1707.06347)
