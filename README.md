@@ -1,10 +1,10 @@
 # NetHack-Neural
 
-## Problem Statement
+# Problem Statement
 
-This project aims to create a Proximal Policy Optimization (PPO) agent that can solve various environments based on the game NetHack. The program is developed using Python 3 and relies on popular libraries like PyTorch, Gym, Click, and MiniHack. The development environment consists of a combination of Jupyter notebooks for interactive development and VS Code for script editing and debugging. The program is compatible with Linux.
+This project aims to create a Proximal Policy Optimization (PPO) agent that can solve various environments based on the game NetHack. The program is developed using Python 3 and relies on popular libraries like PyTorch, Gym, Click, and MiniHack. The development environment consists of VS Code for script editing and debugging. The program is compatible with Linux.
 
-## Detailed Specification
+# Detailed Specification
 
 ### Analysis of Existing Programs
 There are several reinforcement learning agents available that can handle gym-like environments. However, the PPO_NetHack agent aims to specialize in the NetHack-based environments, providing a robust framework for training, evaluating, and visualizing the agent's progress in a variety of NetHack scenarios.
@@ -28,72 +28,117 @@ The program will be divided into several modules:
 5. **Runner module:** This module will control the overall training process, coordinating the agent, environments, and logger.
 
 ### Development Environment
-The agent is developed using Python 3, with the use of libraries such as PyTorch for the implementation of the PPO algorithm, Gym and MiniHack for the environments, Click for the command-line interface, and pandas and tqdm for logging and visualization. The development environment includes Jupyter notebooks for interactive development and VS Code for script editing and debugging.
+The agent is developed using Python 3, with the use of libraries such as PyTorch for the implementation of the PPO algorithm, Gym and MiniHack for the environments, Click for the command-line interface, and pandas and tqdm for logging and visualization. The development environment consists of VS Code for script editing and debugging.
 
 All the source code will be documented, and a user guide will be provided to help users set up and use the PPO_NetHack agent.
 
-## Installation Manual
+# Installation Manual
 
-To install `nethack_neural`, simply use pip:
+I'm still figuring out a portable way to install the program. For now, you can clone the repository and run `python main.py` in the terminal to start the program.
 
-```sh
-pip install nethack_neural
+## Dependencies
+
+In addition to Python 3.x and libraries listed in requirements.txt, the program requires the following due to Nethack Learning Environment: [ NLE Installation ]( https://github.com/facebookresearch/nle#installation )
+
+# User's Guide
+
+## Overview
+
+NetHack-Neural is a Python-based tool designed to train and evaluate Proximal Policy Optimization (PPO) agents in environments based on the game NetHack. Utilizing libraries like PyTorch, Gym, Click, and MiniHack, the tool provides a robust framework for conducting experiments in Reinforcement Learning (RL).
+
+## Features
+
+- **Versatile Environments**: Supports multiple NetHack-based environments.
+- **Modular Design**: Segregates agent, environment, logging, and CLI into separate modules.
+- **Logging**: Comprehensive logging to track training and performance.
+- **Visualization**: Real-time training progress and performance visualization.
+- **Customization**: CLI for easy configuration of training, logging, and environment settings.
+
+## Basic Usage
+
+Run `python main.py` in the terminal to start the program. You will be prompted to configure various settings, including:
+
+- Environment type and name
+- Observation keys
+- Training parameters
+- Agent parameters
+- Logger type and location
+- Training and storage devices
+- Visualization type
+
+## Configuration Files
+
+NetHack-Neural uses YAML-based configuration files stored in the `run_configs` directory. Predefined configurations can be used, or custom ones can be saved for later use.
+
+### Example Configuration
+
+```yaml
+actor_lr: 0.0003
+batch_size: 64
+critic_lr: 0.0003
+env_name: MiniHack-Room-5x5-v0
+epochs: 10
+eps_clip: 0.2
+evaluation_length: 5
+evaluation_period: 500
+gae_lambda: 0.95
+gamma: 0.99
+hidden_layer_size: 64
+load_model: null
+loggers: []
+num_envs: 4
+observation_keys:
+- glyphs
+- blstats
+save_model: null
+total_steps: 100000
+training_device: auto
+visualization: full
+worker_steps: 1000
 ```
 
-This will install the package and all its dependencies. 
+## Command-line Interface (CLI)
 
-## User's Guide
+The CLI provided by Click and simple-term-menu allows for easy navigation and configuration. Follow the prompts to set up your experiment.
 
-### Launching the Program
+## Logging
 
-Once installed, you can launch the program from the command line using the command `nethack_neural`. By default, this will run the command with preset parameters.
+You can choose between terminal-based (`stdout`) and file-based logging. File-based logging can also generate plots to visualize the agent's performance over time.
 
-You can also run specific commands, such as `nethack_neural specialized` or `nethack_neural fully_specialized`.
+## Advanced Usage
 
-### Differences between Commands
+### Custom Environments
 
-The `nethack_neural command` (default run) will run the program using the default parameters specified in the script.
+NetHack-Neural supports the addition of custom Gym-compatible environments. These can be added to the `environments.yaml` file.
 
-The `nethack_neural fully_specialized` command, on the other hand, will prompt the user to input all parameters manually, providing maximum customization for each run.
+### Custom Agents
 
-The `nethack_neural specialized` command provides a middle ground. It is a simplified version of the fully_specialized command, offering fewer customization options. These options focus on the environment, number of environments, total steps, worker steps, evaluation period, evaluation length, and visualization type.
+While the tool comes with predefined PPO agents, you can integrate custom agents by inheriting from the base agent class and implementing the required methods.
 
-### Parameters
+## Technical Details
 
-Here are the parameters you can set for the `fully_specialized` command:
+### Agent Types
 
-- `environment`: Choose an environment from the list or input a custom one.
-- `observation_keys`: Choose observation keys. 'gb' for glyphs and blstats, 'g' for glyphs.
-- `critic_lr`: Enter critic learning rate (default: 0.0003).
-- `actor_lr`: Enter actor learning rate (default: 0.0003).
-- `eps_clip`: Enter eps clip (default: 0.2).
-- `hidden_layer_size`: Enter hidden layer size (default: 64).
-- `num_envs`: Enter number of environments (default: 4).
-- `total_steps`: Enter total steps (default: 100000).
-- `worker_steps`: Enter worker steps (default: 1000).
-- `evaluation_period`: Enter evaluation period (default: 500).
-- `evaluation_length`: Enter evaluation length (default: 5).
-- `batch_size`: Enter batch size (default: 64).
-- `epochs`: Enter number of epochs (default: 10).
-- `training_device`: Choose training device from 'cpu', 'gpu', or 'auto' (default: 'auto').
-- `logger`: Choose logger type from 'stdout', 'file', or 'none' (default: 'none').
-- `visualization`: Choose visualization type from 'none', 'full', or 'bar' (default: 'full').
-- `save_model`: Choose whether to save the model (default: False).
-- `load_model`: Choose whether to load an existing model (default: False).
+- `GlyphPPOAgent`: Uses only map tiles (glyphs) for observations.
+- `BlstatPPOAgent`: Uses only player stats (blstats) for observations.
+- `GlyphBlstatsPPOAgent`: Uses both glyphs and blstats for observations.
 
-### Visualization
+### Logger Types
 
-The visualization option controls the display of the training process in the terminal. 
+- `StdoutLogger`: Logs to the terminal.
+- `FileLogger`: Logs to a specified file and optionally generates performance plots.
 
-- 'none': No visualization.
-- 'full': real-time reward graph with a progress bar and replay.
-- 'bar': A progress bar only.
+### Training Device Options
 
-### Saving and Loading Models
+- `auto`: Automatically selects between CPU and GPU based on availability.
+- `cpu`: Forces CPU usage.
+- `gpu`: Forces GPU usage (if available).
 
-With `save_model`, you can choose whether to save the trained model at the end of the training process. You will be prompted for a directory to save the model.
+### Visualization Types
 
-With `load_model`, you can choose whether to load a pre-trained model at the beginning of the training process. You will be prompted for a directory from which to load the model.
+- `none`: No visualization.
+- `bar`: Displays a tqdm progress bar.
+- `full`: Displays tqdm progress bar, rewards plot, and last evaluation episode in the terminal.
 
 ## Developer Documentation
 
