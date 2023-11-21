@@ -155,3 +155,9 @@ This foundational paper on Proximal Policy Optimization (PPO) algorithms outline
 John Schulman, Philipp Moritz, Sergey Levine, Michael Jordan, Pieter Abbeel (2015). High-Dimensional Continuous Control Using Generalized Advantage Estimation. arXiv preprint arXiv:1506.02438.
 
 The RolloutBuffer class and the computation of Generalized Advantage Estimation (GAE) used in the project are based on the concepts introduced in this paper. The calculation of lambda returns and the use of GAE to reduce variance in policy gradient methods are specifically inspired by Schulman et al.'s research.
+## References
+
+- [PyTorch](https://pytorch.org/)
+- [Gym](https://gym.openai.com/)
+- [NLE](https://arxiv.org/abs/2006.13760)
+- [PPO](https://arxiv.org/abs/1707.06347)
