@@ -1,4 +1,5 @@
 from nethack_neural.runners.abstract_runner import AbstractRunner
+from nethack_neural.agents.abstract_agent import AbstractAgent
 import pandas as pd
 import tqdm
 import plotext as plt
@@ -9,7 +10,7 @@ import numpy as np
 from numpy import ndarray
 
 class PPOFullRunner(AbstractRunner):
-    def __init__(self, env, agent, loggers, use_tqdm=False, use_visualization=False):
+    def __init__(self, env, agent: AbstractAgent, loggers, use_tqdm=False, use_visualization=False):
         super().__init__(env, agent, loggers)
         self.use_tqdm = use_tqdm
         self.use_visualization = use_visualization

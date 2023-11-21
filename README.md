@@ -97,4 +97,16 @@ With `load_model`, you can choose whether to load a pre-trained model at the beg
 
 ## Developer Documentation
 
-(To be added)
+## Citations
+
+The development of NetHack-Neural's Proximal Policy Optimization (PPO) agents incorporates methodologies and architectures that are influenced by a number of key publications in the field of reinforcement learning. Below, I provide citations for the papers that have contributed to the design and implementation of various components of this project.
+
+### General PPO Agent Structure and Training
+- John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, Oleg Klimov (2017). Proximal Policy Optimization Algorithms. arXiv preprint arXiv:1707.06347.
+
+This foundational paper on Proximal Policy Optimization (PPO) algorithms outlines the general approach to policy gradient methods for reinforcement learning that we have adopted in the AbstractPPOAgent class. The use of actor-critic methods, clipping in policy objective, and general methodology for updates is derived from the insights presented in this work.
+
+### Rollout Buffer and Advantage Estimation
+John Schulman, Philipp Moritz, Sergey Levine, Michael Jordan, Pieter Abbeel (2015). High-Dimensional Continuous Control Using Generalized Advantage Estimation. arXiv preprint arXiv:1506.02438.
+
+The RolloutBuffer class and the computation of Generalized Advantage Estimation (GAE) used in the project are based on the concepts introduced in this paper. The calculation of lambda returns and the use of GAE to reduce variance in policy gradient methods are specifically inspired by Schulman et al.'s research.

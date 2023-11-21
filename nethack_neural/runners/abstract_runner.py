@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from numpy import ndarray
 from datetime import datetime
+from nethack_neural.agents.abstract_agent import AbstractAgent
 
 class AbstractRunner(ABC):
     """Abstract base class for running reinforcement learning experiments.
@@ -14,7 +15,7 @@ class AbstractRunner(ABC):
         loggers (list): A list of loggers for logging experiment results.
     """
     @abstractmethod
-    def __init__(self, env, agent, loggers=[]):
+    def __init__(self, env, agent: AbstractAgent, loggers=[]):
         self._env = env
         self._agent = agent
         if loggers is None:
