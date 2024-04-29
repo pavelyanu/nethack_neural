@@ -34,7 +34,19 @@ All the source code will be documented, and a user guide will be provided to hel
 
 # Installation Manual
 
-I'm still figuring out a portable way to install the program. For now, you can clone the repository and run `python main.py` in the terminal to start the program.
+The easiest way to install is using the docker container:
+
+```
+docker pull pavelyanu/nethack_neural:prod
+```
+
+For development purposes use `dev` tag:
+
+```
+docker pull pavelyanu/nethack_neural:dev
+```
+
+Alternatively you can clone this repository and install dependencies using `install_dependencies.sh` script (may not work).
 
 ## Dependencies
 
@@ -56,7 +68,11 @@ NetHack-Neural is a Python-based tool designed to train and evaluate Proximal Po
 
 ## Basic Usage
 
-Run `python main.py` in the terminal to start the program. You will be prompted to configure various settings, including:
+If installed via Docker container simply run `docker_prod_nogpu.sh` script. It will mount the current directory under model_save_site directory to allow for persistent storage.
+
+If installed by other means just run `python main.py`.
+
+In both cases you will be prompted to configure various settings, including:
 
 - Environment type and name
 - Observation keys
