@@ -68,7 +68,7 @@ NetHack-Neural is a Python-based tool designed to train and evaluate Proximal Po
 
 ## Basic Usage
 
-If installed via Docker container simply run `docker_prod_nogpu.sh` script. It will mount the current directory under model_save_site directory to allow for persistent storage.
+If installed via Docker container simply run `docker_prod_nogpu.sh` script. It will mount the current directory under `model_save_site` directory to allow for persistent storage.
 
 If installed by other means just run `python main.py`.
 
