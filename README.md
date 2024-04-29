@@ -1,6 +1,6 @@
 # NetHack-Neural
 
-![Quick Demo]("./nethack_neural.gif")
+![Quick Demo]("nethack_neural.gif")
 
 # Problem Statement
 
