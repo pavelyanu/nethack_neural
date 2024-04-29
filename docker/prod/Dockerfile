@@ -1,6 +1,13 @@
 FROM docker.io/pavelyanu/nethack_neural:dev
 
-RUN pip install nethack_neural
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    git
 
-CMD ["python3", "nethack_neural"]
+WORKDIR /app
 
+RUN git clone https://github.com/pavelyanu/nethack_neural.git
+
+RUN pip install -e ./nethack_neural
+
+CMD ["python", "/app/nethack_neural/nethack_neural/main.py"]

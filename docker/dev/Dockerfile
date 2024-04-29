@@ -5,10 +5,8 @@ RUN apt-get update && \
     build-essential autoconf libtool pkg-config \
     python3-dev python3-pip python3-numpy git flex bison libbz2-dev
 
-RUN pip install nle
-RUN pip install minihack
-RUN pip install pandas
-RUN pip install matplotlib
-RUN pip install plotext
-RUN pip install simple-term-menu
-RUN pip install click
+WORKDIR /tmp
+
+COPY requirements.txt /tmp
+
+RUN pip install --no-cache-dir -r requirements.txt
