@@ -1,6 +1,6 @@
 # NetHack-Neural
 
-![Quick Demo](nethack_neural/nethack_neural.gif)
+![Quick Demo](https://github.com/pavelyanu/nethack_neural/blob/master/nethack_neural.gif)
 
 # Problem Statement
 
