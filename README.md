@@ -1,5 +1,7 @@
 # NetHack-Neural
 
+![Quick Demo]("./nethack_neural.gif")
+
 # Problem Statement
 
 This project aims to create a Proximal Policy Optimization (PPO) agent that can solve various environments based on the game NetHack. The program is developed using Python 3 and relies on popular libraries like PyTorch, Gym, Click, and MiniHack. The development environment consists of VS Code for script editing and debugging. The program is compatible with Linux.
